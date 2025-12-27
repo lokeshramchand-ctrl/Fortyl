@@ -47,5 +47,23 @@ public String generateSecret() {
     return base32.encodeToString(buffer).replace("=", "");
 }
 
+public void confirm(String userId, String code) {
+
+    MfaSecret secret = repo.findByUserId(userId)
+        .orElseThrow(() -> new RuntimeException("MFA not enrolled"));
+
+    if (secret.getStatus() != Status.PENDING) {
+        throw new RuntimeException("MFA already confirmed");
+    }
+
+    boolean valid = TotpUtil.verifyCode(secret.getEncryptedSecret(), code);
+
+    if (!valid) {
+        throw new RuntimeException("Invalid OTP code");
+    }
+
+    secret.setStatus(Status.ACTIVE);
+    repo.save(secret);
+}
 
 }
