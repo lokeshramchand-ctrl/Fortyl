@@ -5,10 +5,14 @@ import com.aegis.auth.entity.MfaSecret;
 import com.aegis.auth.entity.MfaSecret.Status;
 import com.aegis.auth.repository.MfaSecretRepository;
 import com.aegis.auth.util.QrCodeUtil;
+import com.eatthepath.otp.TimeBasedOneTimePasswordGenerator;
 import org.apache.commons.codec.binary.Base32;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.spec.SecretKeySpec;
+import java.security.Key;
 import java.security.SecureRandom;
+import java.time.Instant;
 
 @Service
 public class MfaService {
@@ -19,20 +23,19 @@ public class MfaService {
         this.repo = repo;
     }
 
-    // ================= ENROLL =================
-
+    // ---------- ENROLL ----------
     public MfaEnrollResponse enroll(String userId) {
 
         String secret = generateSecret();
 
         String otpauth = String.format(
-                "otpauth://totp/%s:%s?secret=%s&issuer=%s&digits=6&period=30",
-                "Aegis", userId, secret, "Aegis"
+            "otpauth://totp/%s:%s?secret=%s&issuer=%s&digits=6&period=30",
+            "Aegis", userId, secret, "Aegis"
         );
 
         MfaSecret entity = new MfaSecret();
         entity.setUserId(userId);
-        entity.setEncryptedSecret(secret); // encrypt later
+        entity.setEncryptedSecret(secret);
         entity.setStatus(Status.PENDING);
 
         repo.save(entity);
@@ -41,14 +44,53 @@ public class MfaService {
         return new MfaEnrollResponse(qrBase64);
     }
 
-   
-    // ================= HELPERS =================
+    // ---------- CONFIRM ----------
+    public void confirm(String userId, String code) {
 
-    private String generateSecret() {
-        byte[] buffer = new byte[20];
+        MfaSecret secretEntity = repo.findByUserId(userId)
+            .orElseThrow(() -> new RuntimeException("MFA not enrolled"));
+
+        if (secretEntity.getStatus() != Status.PENDING) {
+            throw new RuntimeException("MFA already active or disabled");
+        }
+
+        try {
+            boolean valid = verifyCode(secretEntity.getEncryptedSecret(), code);
+
+            if (!valid) {
+                throw new RuntimeException("Invalid MFA code");
+            }
+
+            secretEntity.setStatus(Status.ACTIVE);
+            repo.save(secretEntity);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to verify MFA code", e);
+        }
+    }
+
+    // ---------- TOTP VERIFY USING java-otp ----------
+    private boolean verifyCode(String base32Secret, String code) throws Exception {
+
+        Base32 base32 = new Base32();
+        byte[] decodedKey = base32.decode(base32Secret);
+
+        Key key = new SecretKeySpec(decodedKey, "HmacSHA1");
+
+        TimeBasedOneTimePasswordGenerator totp =
+                new TimeBasedOneTimePasswordGenerator(); // 30s, 6 digits, SHA1
+
+        int expected = totp.generateOneTimePassword(key, Instant.now());
+
+        return String.format("%06d", expected).equals(code);
+    }
+
+    // ---------- SECRET GENERATOR ----------
+    public String generateSecret() {
+        byte[] buffer = new byte[20]; // 160 bits
         new SecureRandom().nextBytes(buffer);
+
         Base32 base32 = new Base32();
         return base32.encodeToString(buffer).replace("=", "");
     }
-
 }
