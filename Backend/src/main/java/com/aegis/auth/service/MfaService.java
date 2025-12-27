@@ -45,7 +45,7 @@ public class MfaService {
     }
 
     // ---------- CONFIRM ----------
-    public void confirm(String userId, String code) {
+    public boolean confirm(String userId, String code) {
 
         MfaSecret secretEntity = repo.findByUserId(userId)
             .orElseThrow(() -> new RuntimeException("MFA not enrolled"));
@@ -54,35 +54,44 @@ public class MfaService {
             throw new RuntimeException("MFA already active or disabled");
         }
 
-        try {
-            boolean valid = verifyCode(secretEntity.getEncryptedSecret(), code);
+        boolean valid = verifyCode(secretEntity.getEncryptedSecret(), code);
 
-            if (!valid) {
-                throw new RuntimeException("Invalid MFA code");
-            }
-
-            secretEntity.setStatus(Status.ACTIVE);
-            repo.save(secretEntity);
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to verify MFA code", e);
+        if (!valid) {
+            throw new RuntimeException("Invalid MFA code");
         }
+
+        secretEntity.setStatus(Status.ACTIVE);
+        repo.save(secretEntity);
+
+        return true;
     }
 
-    // ---------- TOTP VERIFY USING java-otp ----------
-    private boolean verifyCode(String base32Secret, String code) throws Exception {
+    // ---------- TOTP VERIFY (with ±1 window) ----------
+    private boolean verifyCode(String base32Secret, String code) {
 
-        Base32 base32 = new Base32();
-        byte[] decodedKey = base32.decode(base32Secret);
+        try {
+            Base32 base32 = new Base32();
+            byte[] decodedKey = base32.decode(base32Secret);
 
-        Key key = new SecretKeySpec(decodedKey, "HmacSHA1");
+            Key key = new SecretKeySpec(decodedKey, "HmacSHA1");
 
-        TimeBasedOneTimePasswordGenerator totp =
-                new TimeBasedOneTimePasswordGenerator(); // 30s, 6 digits, SHA1
+            TimeBasedOneTimePasswordGenerator totp =
+                    new TimeBasedOneTimePasswordGenerator(); // default: 30s, 6 digits, SHA1
 
-        int expected = totp.generateOneTimePassword(key, Instant.now());
+            Instant now = Instant.now();
 
-        return String.format("%06d", expected).equals(code);
+            for (int i = -1; i <= 1; i++) {
+                Instant t = now.plusSeconds(i * 30L);
+                int expected = totp.generateOneTimePassword(key, t);
+                if (String.format("%06d", expected).equals(code)) {
+                    return true;
+                }
+            }
+            return false;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error verifying TOTP", e);
+        }
     }
 
     // ---------- SECRET GENERATOR ----------
