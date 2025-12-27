@@ -1,6 +1,5 @@
 package com.aegis.auth.controller;
 
-import com.aegis.auth.dto.MfaConfirmRequest;
 import com.aegis.auth.dto.MfaEnrollResponse;
 import com.aegis.auth.service.MfaService;
 import org.springframework.web.bind.annotation.*;
@@ -9,22 +8,16 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/mfa")
 public class MfaController {
 
-  private final MfaService service;
+    private final MfaService service;
 
-  public MfaController(MfaService service) {
-    this.service = service;
-  }
+    public MfaController(MfaService service) {
+        this.service = service;
+    }
 
-  @PostMapping("/enroll")
-  public MfaEnrollResponse enroll(
-      @RequestHeader("X-User-Id") String userId) {
-
-    return service.enroll(userId);
-  }
-
-  @PostMapping("/confirm")
-  public void confirm(@RequestBody MfaConfirmRequest request) {
-    service.confirm(request.userId(), request.code());
-  }
+    @PostMapping("/enroll")
+    public MfaEnrollResponse enroll(
+            @RequestHeader("X-User-Id") String userId) {
+        return service.enroll(userId);
+    }
 
 }
