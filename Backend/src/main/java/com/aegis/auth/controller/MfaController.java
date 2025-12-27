@@ -20,11 +20,17 @@ public class MfaController {
         return service.enroll(userId);
     }
 
-@PostMapping(value = "/confirm", consumes = "application/json")
-public String confirm(@RequestBody MfaConfirmRequest request) {
-    System.out.println("Confirm request: " + request);
-    service.confirm(request.userId(), request.code());
-    return "MFA confirmed";
-}
+    @PostMapping(value = "/confirm", consumes = "application/json")
+    public String confirm(@RequestBody MfaConfirmRequest request) {
+        System.out.println("Confirm request: " + request);
+        service.confirm(request.userId(), request.code());
+        return "MFA confirmed";
+    }
+
+    @PostMapping("/verify")
+    public String verify(@RequestBody MfaConfirmRequest request) {
+        service.verify(request.userId(), request.code());
+        return "MFA verified";
+    }
 
 }

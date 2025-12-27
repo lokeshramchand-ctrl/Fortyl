@@ -29,9 +29,8 @@ public class MfaService {
         String secret = generateSecret();
 
         String otpauth = String.format(
-            "otpauth://totp/%s:%s?secret=%s&issuer=%s&digits=6&period=30",
-            "Aegis", userId, secret, "Aegis"
-        );
+                "otpauth://totp/%s:%s?secret=%s&issuer=%s&digits=6&period=30",
+                "Aegis", userId, secret, "Aegis");
 
         MfaSecret entity = new MfaSecret();
         entity.setUserId(userId);
@@ -48,7 +47,7 @@ public class MfaService {
     public boolean confirm(String userId, String code) {
 
         MfaSecret secretEntity = repo.findByUserId(userId)
-            .orElseThrow(() -> new RuntimeException("MFA not enrolled"));
+                .orElseThrow(() -> new RuntimeException("MFA not enrolled"));
 
         if (secretEntity.getStatus() != Status.PENDING) {
             throw new RuntimeException("MFA already active or disabled");
@@ -66,6 +65,25 @@ public class MfaService {
         return true;
     }
 
+    public void verify(String userId, String code) {
+
+        MfaSecret secret = repo.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("MFA not enrolled"));
+
+        if (secret.getStatus() != Status.ACTIVE) {
+            throw new RuntimeException("MFA not active");
+        }
+
+        try {
+            boolean valid = verifyCode(secret.getEncryptedSecret(), code);
+            if (!valid) {
+                throw new RuntimeException("Invalid MFA code");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to verify MFA code", e);
+        }
+    }
+
     // ---------- TOTP VERIFY (with ±1 window) ----------
     private boolean verifyCode(String base32Secret, String code) {
 
@@ -75,8 +93,8 @@ public class MfaService {
 
             Key key = new SecretKeySpec(decodedKey, "HmacSHA1");
 
-            TimeBasedOneTimePasswordGenerator totp =
-                    new TimeBasedOneTimePasswordGenerator(); // default: 30s, 6 digits, SHA1
+            TimeBasedOneTimePasswordGenerator totp = new TimeBasedOneTimePasswordGenerator(); // default: 30s, 6 digits,
+                                                                                              // SHA1
 
             Instant now = Instant.now();
 
