@@ -2,7 +2,7 @@ package com.aegis.auth.service;
 import com.aegis.auth.repository.UserRepository;
 import com.aegis.auth.entity.User;
 import com.aegis.auth.dto.AuthResponse;
-import com.aegis.auth.service.JwtService;
+import com.aegis.auth.service.AuthService;
 import com.aegis.auth.repository.MfaSecretRepository;
 import com.aegis.auth.entity.MfaSecret.Status;
 

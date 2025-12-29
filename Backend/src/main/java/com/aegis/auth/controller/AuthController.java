@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.aegis.auth.repository.UserRepository;
 import com.aegis.auth.service.AuthService;
 import com.aegis.auth.dto.AuthResponse;
-import com.aegis.auth.dto.LoginRequest;
 
 @RestController
 @RequestMapping("/auth")
