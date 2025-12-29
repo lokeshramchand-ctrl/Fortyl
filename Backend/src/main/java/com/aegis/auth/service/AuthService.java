@@ -1,11 +1,10 @@
+package com.aegis.auth.service;
 import com.aegis.auth.repository.UserRepository;
 import com.aegis.auth.entity.User;
 import com.aegis.auth.dto.AuthResponse;
 import com.aegis.auth.service.JwtService;
 import com.aegis.auth.repository.MfaSecretRepository;
 import com.aegis.auth.entity.MfaSecret.Status;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
@@ -14,9 +13,15 @@ public class AuthService {
   private final PasswordEncoder encoder;
   private final JwtService jwtService;
   private final MfaSecretRepository mfaRepo;
-
-  public AuthService(...) { ... }
-
+  public AuthService(UserRepository repo,
+                     PasswordEncoder encoder,
+                     JwtService jwtService,
+                     MfaSecretRepository mfaRepo) {
+    this.repo = repo;
+    this.encoder = encoder;
+    this.jwtService = jwtService;
+    this.mfaRepo = mfaRepo;
+  }
   public AuthResponse login(String email, String password) {
 
     User user = repo.findByEmail(email)
