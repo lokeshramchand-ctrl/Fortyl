@@ -1,4 +1,4 @@
-
+![Profile Picture](/assets/banner.png)
 # Aegis — Secure Authentication Platform
 
 Aegis is a modern authentication platform that provides Email & Password login, JWT-based sessions, and Time-based Multi-Factor Authentication (TOTP) using authenticator apps — built with security, clarity, and extensibility in mind.
