@@ -1,4 +1,4 @@
-![Profile Picture](assets/Frame 20.png)
+![Profile Picture](Backend/banner.png)
 
 
 
