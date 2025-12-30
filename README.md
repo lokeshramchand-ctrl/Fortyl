@@ -1,198 +1,310 @@
+Here is the complete documentation in Markdown (`.md`) format, preserving your original structure and content exactly as provided.
 
-# Aegis — Secure Authentication Platform
+```markdown
+# 🔐 Aegis — Secure Authentication Platform
 
-Aegis is a modern authentication platform that provides Email & Password authentication, JWT-based sessions, and Time-based Multi-Factor Authentication (TOTP) using authenticator apps.
+Aegis is a modern authentication platform that provides Email & Password login, JWT-based sessions, and Time-based Multi-Factor Authentication (TOTP) using authenticator apps — built with security, clarity, and extensibility in mind.
 
-It is designed as a backend-driven authentication system with clear MFA lifecycle management, making it suitable for real-world applications, enterprise systems, and security-focused products.
+Unlike standalone authenticator apps, Aegis combines backend-driven authentication logic with client-side MFA, making it suitable for real-world applications, enterprise systems, and security-focused products.
 
 ---
 
-## Why Aegis?
+## 📌 Why Aegis?
 
 Authentication systems are often either:
-* **Too simple** — password-only login with weak security.
-* **Too fragmented** — MFA handled separately with no backend awareness.
-* **Hard to extend** — tightly coupled and difficult to scale.
+* **Too simple** — password-only login with weak security
+* **Too fragmented** — MFA handled separately with no backend awareness
+* **Hard to extend** — tightly coupled, hard to reason about
 
 Aegis solves this by treating authentication as a first-class platform.
 
 ---
 
-## Problem
+## 🚨 Problem
 
 Modern applications require strong authentication, but developers face several challenges:
-* Password-only authentication is insecure.
-* MFA is often added as an afterthought.
-* OTP apps are device-bound, not account-aware.
-* No visibility into MFA state during login.
-* Hard to manage sessions, re-logins, and MFA verification.
-* Frontend and backend MFA logic are disconnected.
+* Password-only authentication is insecure
+* MFA is often bolted on as an afterthought
+* OTP apps are device-bound, not account-aware
+* No visibility into MFA state during login
+* Hard to manage sessions, re-logins, and MFA verification
+* Frontend and backend MFA logic are often disconnected
 
-These issues lead to systems that are hard to scale, hard to audit, and hard to trust.
+As a result, systems become hard to scale, hard to audit, and hard to trust.
 
 ---
 
-## Solution
+## ✅ Solution
 
 Aegis provides a clean, backend-driven authentication flow:
-* **Secure Auth:** Email and password authentication with BCrypt hashing.
-* **Session Management:** JWT-based stateless session management.
-* **TOTP-based MFA:** Using industry-standard algorithms (RFC 6238).
-* **Lifecycle Management:** Backend-controlled MFA states (Enroll → Confirm → Verify).
-* **Universal Compatibility:** QR-based enrollment for Google Authenticator or the Aegis app.
-* **Separation of Concerns:** Clear boundaries across backend, mobile, and web.
+* Email + Password authentication with BCrypt hashing
+* JWT-based stateless session management
+* TOTP-based MFA using industry-standard OTP algorithms
+* Backend-controlled MFA lifecycle (Enroll → Confirm → Verify)
+* QR-based MFA enrollment
+* Clear separation of concerns across backend, mobile, and web
+* Designed for future extensions (Redis, Kafka, device trust, risk scoring)
 
 ---
 
-## Core Features
+## ✨ Core Features
 
-### Authentication
-- Email and password login
-- BCrypt password hashing
-- JWT token generation
-- MFA-aware login flow
+### 🔐 Authentication
+* Email & password login
+* BCrypt password hashing
+* JWT token generation
+* MFA-aware login flow
 
-### Multi-Factor Authentication (MFA)
-- TOTP-based MFA (RFC 6238 compatible)
-- QR code enrollment
-- Compatible with Google Authenticator and Aegis Authenticator
-- Backend-side OTP verification
-- 30-second rolling codes
-- MFA state management (PENDING → ACTIVE)
+### 🔑 Multi-Factor Authentication (MFA)
+* TOTP-based MFA (RFC 6238 compatible)
+* QR code enrollment
+* Google Authenticator / Aegis Authenticator compatible
+* Backend-side OTP verification
+* 30-second rolling codes
+* MFA state management (PENDING → ACTIVE)
 
-### Client Support
-- **Flutter-based** authenticator app
-- **Web-based** login and QR enrollment (Next.js)
-- API-driven authentication flows
+### 📱 Client Support
+* Flutter-based authenticator app
+* Web-based login & QR enrollment (Next.js)
+* API-driven flows
 
-### Architecture
-- Modular Spring Boot backend
-- Clean REST APIs
-- Database-backed MFA state
-- Stateless authentication using JWT
+### 🧱 Architecture
+* Modular Spring Boot backend
+* Clean REST APIs
+* Database-backed MFA state
+* Stateless authentication using JWT
 
 ---
 
-## Repository Structure
+## 📁 Repository Structure
 
 ```text
 Aegis/
+│
 ├── Backend/
 │   ├── auth-core/
 │   │   ├── src/main/java/com/aegis/auth/
-│   │   │   ├── controller/      # Auth, MFA, and Health endpoints
-│   │   │   ├── service/         # Business logic for JWT, MFA, and Passwords
-│   │   │   ├── entity/          # JPA Entities (User, MfaSecret)
-│   │   │   ├── repository/      # Spring Data JPA Repositories
-│   │   │   ├── dto/             # Data Transfer Objects for API
-│   │   │   ├── security/        # Spring Security & JWT Filters
-│   │   │   └── util/            # QR and TOTP Utilities
+│   │   │   ├── controller/
+│   │   │   │   ├── AuthController.java
+│   │   │   │   ├── MfaController.java
+│   │   │   │   └── HealthController.java
+│   │   │   │
+│   │   │   ├── service/
+│   │   │   │   ├── AuthService.java
+│   │   │   │   ├── MfaService.java
+│   │   │   │   ├── JwtService.java
+│   │   │   │   └── PasswordService.java
+│   │   │   │
+│   │   │   ├── entity/
+│   │   │   │   ├── User.java
+│   │   │   │   └── MfaSecret.java
+│   │   │   │
+│   │   │   ├── repository/
+│   │   │   │   ├── UserRepository.java
+│   │   │   │   └── MfaSecretRepository.java
+│   │   │   │
+│   │   │   ├── dto/
+│   │   │   │   ├── LoginRequest.java
+│   │   │   │   ├── LoginResponse.java
+│   │   │   │   ├── MfaEnrollResponse.java
+│   │   │   │   └── MfaVerifyRequest.java
+│   │   │   │
+│   │   │   ├── security/
+│   │   │   │   ├── SecurityConfig.java
+│   │   │   │   ├── JwtFilter.java
+│   │   │   │   └── PasswordEncoderConfig.java
+│   │   │   │
+│   │   │   ├── util/
+│   │   │   │   ├── QrCodeUtil.java
+│   │   │   │   └── TotpUtil.java
+│   │   │   │
+│   │   │   └── AegisApplication.java
+│   │   │
+│   │   ├── src/main/resources/
+│   │   │   └── application.yml
+│   │   │
 │   │   ├── Dockerfile
 │   │   └── pom.xml
+│
 ├── Frontend/
-│   ├── flutter-app/             # Mobile Authenticator App
+│   ├── flutter-app/
 │   │   ├── lib/
-│   │   │   ├── screens/         # QR Scan, OTP List, Verify
-│   │   │   ├── services/        # MFA API Integration
-│   │   │   └── models/          # Data Models
+│   │   │   ├── screens/
+│   │   │   │   ├── enroll_qr.dart
+│   │   │   │   ├── otp_list.dart
+│   │   │   │   ├── otp_verify.dart
+│   │   │   │   └── settings.dart
+│   │   │   │
+│   │   │   ├── services/
+│   │   │   │   └── mfa_service.dart
+│   │   │   │
+│   │   │   ├── models/
+│   │   │   │   └── otp_account.dart
+│   │   │   │
+│   │   │   └── main.dart
+│   │   │
+│   │   └── pubspec.yaml
+│
 ├── Web/
-│   ├── aegis-web/               # Next.js Web Dashboard
-│   │   ├── pages/               # Login, Enroll, Verify pages
-│   │   ├── components/          # UI Components (QrViewer, OtpInput)
-│   │   └── services/            # API Client
-├── docs/                        # Architecture and Flow diagrams
+│   ├── aegis-web/          # Next.js App
+│   │   ├── pages/
+│   │   │   ├── login.tsx
+│   │   │   ├── enroll.tsx
+│   │   │   ├── verify.tsx
+│   │   │   └── dashboard.tsx
+│   │   │
+│   │   ├── components/
+│   │   │   ├── QrViewer.tsx
+│   │   │   ├── OtpInput.tsx
+│   │   │   └── SecureButton.tsx
+│   │   │
+│   │   ├── services/
+│   │   │   └── api.ts
+│   │   │
+│   │   └── next.config.js
+│
+├── docs/
+│   ├── architecture.md
+│   └── auth-flow.md
+│
 ├── docker-compose.yaml
-└── README.md
+├── README.md
+└── LICENSE
 
 ```
 
 ---
 
-## Authentication Flow
+## 🔄 Authentication Flow
 
-### 1. Login
+### 1️⃣ Login
 
-User submits `Email + Password`. The Backend validates credentials using BCrypt.
+Email + Password → Backend Validation
 
-### 2. MFA Check
+### 2️⃣ MFA Required?
 
-* **If MFA is ACTIVE:** Backend returns a temporary state prompting for OTP.
-* **If MFA is NOT ACTIVE:** Backend issues a full Access JWT.
+If MFA ACTIVE → Prompt for OTP
+If not → Issue JWT
 
-### 3. MFA Enrollment
+### 3️⃣ MFA Enroll
 
-`POST /mfa/enroll` → Returns a QR Code → Scanned by Authenticator App.
+`/mfa/enroll` → QR Code → Authenticator App Scan
 
-### 4. MFA Confirmation
+### 4️⃣ MFA Confirm
 
-User enters first OTP → `POST /mfa/confirm` → MFA status updated to **ACTIVE**.
+User enters OTP → `/mfa/confirm` → MFA Activated
 
-### 5. MFA Verification (Subsequent Logins)
+### 5️⃣ MFA Verify (Future Logins)
 
-User enters OTP → `POST /mfa/verify` → Backend validates and issues final JWT.
+OTP → `/mfa/verify` → JWT Issued
 
 ---
 
-## Flutter App (Authenticator)
+## 📱 Flutter App (Authenticator)
 
 The Flutter app acts as a secure OTP generator.
 
-**Key Screens:**
+### Screens
 
-* **QR Scan:** For enrolling new accounts.
-* **OTP List:** Supporting multiple accounts.
-* **Countdown UI:** 30-second rotation visualization.
-* **Manual Verification:** Direct entry support.
+* **QR Scan:** Enroll new account
+* **OTP List:** Support for multiple accounts
+* **OTP Countdown UI:** 30s rolling visual
+* **Manual OTP verification**
+* **Security settings**
 
-**Design Goals:**
+### Design Goals
 
-* Minimal interface with fast OTP refresh.
-* Secure local storage for secrets.
-* Account-centric model.
-
----
-
-## Web App (Next.js)
-
-The web app handles user-facing authentication flows and dashboard access.
-
-**Pages:**
-
-* `login.tsx`: Email/Password entry.
-* `enroll.tsx`: Displays QR for MFA setup.
-* `verify.tsx`: Secure OTP input field.
-* `dashboard.tsx`: Protected user area.
+* Minimal UI
+* Fast OTP refresh
+* Clear visual countdown
+* Account-centric (not device-only)
 
 ---
 
-## Tech Stack
+## 🌐 Web App (Next.js)
 
-| Layer | Technology |
-| --- | --- |
-| **Backend** | Java 21, Spring Boot, Spring Security, JPA, PostgreSQL |
-| **Auth** | JWT (JSON Web Tokens), BCrypt, java-otp |
-| **Mobile** | Flutter (Dart), Material UI, Secure Storage |
-| **Web** | Next.js, TypeScript, Tailwind CSS |
-| **Utilities** | ZXing (QR Generation), Docker |
+The web app handles user-facing authentication flows.
 
----
+### Pages
 
-## Future Enhancements
+* **Login:** email + password
+* **MFA Enrollment:** QR display
+* **MFA Verification:** OTP input
+* **Dashboard:** post-login view
 
-* **Redis:** For OTP window caching and session TTL management.
-* **Kafka:** For authentication events and audit logging.
-* **Security:** Device fingerprinting and risk-based MFA.
-* **Recovery:** Implementation of backup recovery codes.
+### Purpose
+
+* Complements mobile app
+* Allows login without mobile device access
+* Admin / developer-friendly
 
 ---
 
-## Design Philosophy
+## 🛠 Tech Stack
 
-Aegis is built with **explicit authentication state transitions**, ensuring that the backend always dictates the security requirements. By utilizing a **backend-first** approach, client-side implementation remains simple while maintaining high security standards and extensibility.
+### Backend
+
+* Java 21
+* Spring Boot
+* Spring Security
+* JPA / Hibernate
+* PostgreSQL
+* `java-otp` (TOTP generation)
+* `ZXing` (QR generation)
+
+### Mobile
+
+* Flutter (Dart)
+* Material UI
+* Secure local storage
+
+### Web
+
+* Next.js
+* TypeScript
+* API-based auth flows
 
 ---
 
-## Conclusion
+## 🔮 Future Enhancements (Not Implemented Yet)
 
-Aegis is a complete authentication platform foundation demonstrating real-world flows, security best practices, and a modular architecture. It is suitable for production applications, system design references, and portfolio showcases.
+* **Redis:** OTP window cache & session TTL
+* **Kafka:** Auth events, audit logs
+* **Device fingerprinting**
+* **Login alerts**
+* **Recovery codes**
+* **Risk-based MFA**
 
+---
+
+## 🧠 Design Philosophy
+
+Aegis is built with:
+
+* Explicit state transitions
+* Clear authentication contracts
+* Backend-first security decisions
+* Client simplicity
+* Extensibility over cleverness
+
+---
+
+## 🏁 Conclusion
+
+Aegis is not just an MFA demo — it is a full authentication platform foundation.
+
+It demonstrates:
+
+1. Real-world auth flows
+2. Security best practices
+3. Clean architecture
+4. Multi-client support (mobile + web)
+5. Scalability-first thinking
+
+**Suitable for:** Production apps, security-focused portfolios, and enterprise-grade systems.
+
+```
+
+Would you like me to help you create the `docker-compose.yaml` file to get these services running together?
+
+```
