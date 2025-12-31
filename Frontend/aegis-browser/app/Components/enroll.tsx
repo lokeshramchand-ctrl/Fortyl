@@ -1,19 +1,21 @@
+"use client";
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 type AppState = 'enrolling' | 'confirming' | 'success' | 'error';
 
-export default function App() {
+export default function Enrollment() {
   const [state, setState] = useState<AppState>('enrolling');
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(''));
-  const [error, setError] = useState<string | null>(null);
+  const [error,  setError] = useState<string | null>(null);
   const [userId] = useState<string>("user_2d9k1m0p8x5z");
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL;
   const fetchEnrollment = useCallback(async () => {
     setError(null);
     try {
-      const response = await fetch('/mfa/enroll', {
+      const response = await fetch(`${API_BASE}/mfa/enroll`, {
         method: 'POST',
         headers: { 'X-User-Id': userId },
       });
@@ -72,7 +74,7 @@ export default function App() {
     setState('confirming');
 
     try {
-      const response = await fetch('/mfa/confirm', {
+      const response = await fetch(`${API_BASE}/mfa/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, code }),
