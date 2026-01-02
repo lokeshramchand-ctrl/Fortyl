@@ -1,157 +1,176 @@
+// ignore_for_file: unused_field, deprecated_member_use
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:otp/otp.dart';
 
-class VaultScreen extends StatefulWidget {
-  const VaultScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<VaultScreen> createState() => _VaultScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _MainColors {
-  static const background = Color(0xFF0B0B0B);
-  static const surface = Color(0xFF161616);
-  static const accent = Color(0xFFF07127); // Warm orange
-  static const textPrimary = Color(0xFFE0E0E0);
-  static const textSecondary = Color(0xFF9E9E9E);
-}
-
-class _VaultScreenState extends State<VaultScreen> {
-  double _timerProgress = 1.0;
-  late Timer _timer;
-  int _secondsRemaining = 30;
+class _HomeScreenState extends State<HomeScreen> {
+  late Timer _refreshTimer;
+  double _percent = 1.0;
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
-  }
-
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    // Update every 100ms for "Liquid" smooth animations
+    _refreshTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      final now = DateTime.now().millisecondsSinceEpoch;
       setState(() {
-        if (_secondsRemaining == 0) {
-          _secondsRemaining = 30;
-        }
-        _timerProgress = (timer.tick % 300) / 300;
-        // Inverse for the draining effect
-        _timerProgress = 1.0 - _timerProgress;
+        _percent = 1.0 - ((now % 30000) / 30000);
       });
     });
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _refreshTimer.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _MainColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text("Vault", 
-          style: TextStyle(color: _MainColors.textPrimary, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-        actions: [
-          IconButton(icon: const Icon(Icons.search, color: _MainColors.textSecondary), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.more_vert, color: _MainColors.textSecondary), onPressed: () {}),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: _MainColors.accent,
-        shape: const StadiumBorder(),
-        onPressed: () {},
-        icon: const Icon(Icons.add, color: Colors.black),
-        label: const Text("Add Account", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-      ),
+      backgroundColor: const Color(0xFF0B0B0B),
+      appBar: _buildAppBar(),
       body: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: 5, // Mock data
-        itemBuilder: (context, index) => _buildAccountCard(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        itemCount: 3, // In production, this comes from your database
+        itemBuilder: (context, index) => const PoshOTPKeyCard(
+          label: "GitHub",
+          account: "lokesh.ram@university.com",
+          secret: "JBSWY3DPEHPK3PXP", // Mock Base32 Secret
+        ),
       ),
     );
   }
 
-  Widget _buildAccountCard() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: _MainColors.surface,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Code copied to clipboard"), behavior: SnackBarBehavior.floating),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                // 1. Accent Strip
-                Container(
-                  width: 4,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: _MainColors.accent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                
-                // 2. Info Section
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Google", 
-                        style: TextStyle(color: _MainColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text("lokesh.ram@university.com", 
-                        style: TextStyle(color: _MainColors.textSecondary, fontSize: 13)),
-                      const SizedBox(height: 12),
-                      const Text("482 910", 
-                        style: TextStyle(
-                          color: _MainColors.accent, 
-                          fontSize: 32, 
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2,
-                        )),
-                    ],
-                  ),
-                ),
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: false,
+      title: const Text("Vault", 
+        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -1)),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: CircleAvatar(backgroundColor: Colors.white10, child: Icon(Icons.person_outline, color: Colors.white70)),
+        )
+      ],
+    );
+  }
+}
 
-                // 3. Timer Section
-                Stack(
-                  alignment: Alignment.center,
+class PoshOTPKeyCard extends StatelessWidget {
+  final String label;
+  final String account;
+  final String secret;
+
+  const PoshOTPKeyCard({required this.label, required this.account, required this.secret, super.key});
+
+  String _generateOTP() {
+    return OTP.generateTOTPCodeString(secret, DateTime.now().millisecondsSinceEpoch, 
+      interval: 30, algorithm: Algorithm.SHA1, isGoogle: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // We use a TweenAnimationBuilder for the 'Liquid' progress effect
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final double progress = 1.0 - ((now % 30000) / 30000);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      height: 140,
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Stack(
+        children: [
+          // 1. The Liquid Background Fill (The "Posh" Timer)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: progress,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  gradient: LinearGradient(
+                    colors: [const Color(0xFFF07127).withOpacity(0.15), Colors.transparent],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          // 2. Content Layer
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(
-                      width: 45,
-                      height: 45,
-                      child: CircularProgressIndicator(
-                        value: _timerProgress,
-                        strokeWidth: 3,
-                        backgroundColor: Colors.white10,
-                        valueColor: const AlwaysStoppedAnimation<Color>(_MainColors.accent),
+                    Text(label, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(account, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+                    const SizedBox(height: 12),
+                    // Digital OTP Code
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: _generateOTP()));
+                        HapticFeedback.vibrate();
+                      },
+                      child: Text(
+                        _generateOTP().replaceAllMapped(RegExp(r".{3}"), (match) => "${match.group(0)} "),
+                        style: const TextStyle(
+                          color: Color(0xFFF07127), 
+                          fontSize: 36, 
+                          fontWeight: FontWeight.w900, 
+                          letterSpacing: 1
+                        ),
                       ),
                     ),
-                    Text(
-                      "${(30 * _timerProgress).toInt()}",
-                      style: const TextStyle(color: _MainColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
-                    )
                   ],
                 ),
+                // 3. Status Indicator (Minimalist Dot)
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.copy_rounded, color: Colors.white.withOpacity(0.2), size: 20),
+                    const Spacer(),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: progress > 0.2 ? const Color(0xFFF07127) : Colors.redAccent,
+                        boxShadow: [
+                          BoxShadow(
+                            color: (progress > 0.2 ? const Color(0xFFF07127) : Colors.redAccent).withOpacity(0.5),
+                            blurRadius: 10,
+                            spreadRadius: 2
+                          )
+                        ]
+                      ),
+                    )
+                  ],
+                )
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

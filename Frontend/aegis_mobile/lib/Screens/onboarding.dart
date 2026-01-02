@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+import 'package:aegis_mobile/Screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 
@@ -80,7 +81,7 @@ class OnboardingScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
                   child: Column(
                     children: [
-                      _buildPrimaryButton(),
+                      _buildPrimaryButton(context),
                       const SizedBox(height: 24),
                       _buildSecondaryButton(),
                     ],
@@ -142,7 +143,7 @@ class OnboardingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPrimaryButton() {
+  Widget _buildPrimaryButton(BuildContext context) {
     return Container(
       width: double.infinity,
       height: 64,
@@ -160,8 +161,11 @@ class OnboardingScreen extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () {
           // Navigate to the next onboarding step or main app
-          Navigator.pushNamed(context, '/lockscreen');
-        },
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => const HomeScreen()),
+  );
+          },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
