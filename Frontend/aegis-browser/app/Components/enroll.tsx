@@ -21,7 +21,7 @@ export default function Enrollment() {
       });
       if (!response.ok) throw new Error('Failed to initialize enrollment');
       const data = await response.json();
-      setQrCode(data.qrCodeBase64);
+      setQrCode(`data:image/png;base64,${data.qrCodeBase64}`);
     } catch (err) {
       setError('Connection failed. Please refresh to try again.');
       setState('error');
