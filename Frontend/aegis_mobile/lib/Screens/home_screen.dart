@@ -1,6 +1,7 @@
 // ignore_for_file: unused_field, deprecated_member_use
 
 import 'dart:async';
+import 'package:aegis_mobile/Screens/scanner_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:otp/otp.dart';
@@ -61,7 +62,22 @@ class _HomeScreenState extends State<HomeScreen> {
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 16),
-          child: CircleAvatar(backgroundColor: Colors.white10, child: Icon(Icons.person_outline, color: Colors.white70)),
+          child: ElevatedButton(
+            onPressed: () {
+              // Action for adding a new OTP key
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => const ScannerScreen()),
+  );            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF07127),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
+          ),
         )
       ],
     );
