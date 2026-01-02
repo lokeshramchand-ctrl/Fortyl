@@ -1,3 +1,6 @@
+// ignore_for_file: unused_import
+
+import 'package:aegis_mobile/Screens/lock_screen.dart';
 import 'package:aegis_mobile/Screens/onboarding.dart';
 import 'package:flutter/material.dart';
 
@@ -17,7 +20,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         useMaterial3: true,
       ),
-      home: const OnboardingScreen(),
+      home: const LockScreen(),
     );
   }
 }
