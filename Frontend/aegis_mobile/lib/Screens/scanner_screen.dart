@@ -5,7 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../models/otp_model.dart';
 import 'scanner_overlay.dart';
-import 'home_screen.dart'; // <-- your homepage
+// <-- your homepage
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -16,7 +16,6 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen>
     with SingleTickerProviderStateMixin {
-
   late final AnimationController _animationController;
   final MobileScannerController _scannerController = MobileScannerController();
 
@@ -88,19 +87,11 @@ class _ScannerScreenState extends State<ScannerScreen>
     try {
       final account = OtpAccount.fromOtpAuthUri(data);
 
-      // SUCCESS → Go to HomePage
+      // SUCCESS → return result to HomeScreen
       Future.microtask(() {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HomeScreen(),
-          ),
-          (_) => false, // clear stack
-        );
+        Navigator.pop(context, account);
       });
-
     } catch (_) {
-      // FAILURE → Snackbar + resume scanning
       _showInvalidQr();
     }
   }

@@ -11,8 +11,7 @@ import 'scanner_screen.dart';
 import '../Models/otp_model.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.initialAccount});
-  final OtpAccount? initialAccount;
+  const HomeScreen({super.key});
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -24,14 +23,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    
     _refreshTimer = Timer.periodic(
       const Duration(milliseconds: 100),
       (_) => setState(() {}),
     );
-    
-  if (widget.initialAccount != null) {
-    _accounts.add(widget.initialAccount!);
-  }
+ 
 
   _refreshTimer = Timer.periodic(
     const Duration(milliseconds: 100),
