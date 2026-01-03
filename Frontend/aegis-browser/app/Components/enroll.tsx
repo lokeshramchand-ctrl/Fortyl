@@ -9,14 +9,28 @@ export default function Enrollment() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(''));
   const [error, setError] = useState<string | null>(null);
-  const [userId] = useState<string>("user_2d9k1m0p8x5z");
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-  // Add useEffect to log API_BASE
+  // ==================== RANDOM USER GENERATION START ====================
+  // Generates a unique user ID on each component mount
+  // Format: user_<timestamp_base36>_<random_string>
+  // Example: user_lm5x8k_9a3f2e1d
+  const generateRandomUserId = () => {
+    const timestamp = Date.now().toString(36);
+    const randomStr = Math.random().toString(36).substring(2, 10);
+    return `user_${timestamp}_${randomStr}`;
+  };
+  const [userId] = useState<string>(generateRandomUserId());
+  // ==================== RANDOM USER GENERATION END ====================
+
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
+  // Log API configuration and generated user ID for debugging
   useEffect(() => {
     console.log('API_BASE:', API_BASE);
-  }, []);
+    console.log('Generated userId:', userId);
+  }, [userId]);
+
   const fetchEnrollment = useCallback(async () => {
     setError(null);
     try {
@@ -49,9 +63,13 @@ export default function Enrollment() {
       setState('error');
     }
   }, [userId, API_BASE]);
+
+  // Trigger enrollment API call when component mounts
   useEffect(() => {
     fetchEnrollment();
   }, [fetchEnrollment]);
+
+
   const handleOtpChange = (value: string, index: number) => {
     // Only allow numbers
     const cleanValue = value.replace(/[^0-9]/g, '');
