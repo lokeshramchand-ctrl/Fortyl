@@ -10,9 +10,9 @@ export default function Enrollment() {
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(''));
   const [error, setError] = useState<string | null>(null);
   const [userId] = useState<string>("user_2d9k1m0p8x5z");
- const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-  
+
   // Add useEffect to log API_BASE
   useEffect(() => {
     console.log('API_BASE:', API_BASE);
@@ -49,7 +49,7 @@ export default function Enrollment() {
       setState('error');
     }
   }, [userId, API_BASE]);
-    useEffect(() => {
+  useEffect(() => {
     fetchEnrollment();
   }, [fetchEnrollment]);
   const handleOtpChange = (value: string, index: number) => {
