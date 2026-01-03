@@ -1,4 +1,4 @@
-![Profile Picture](assets/Frame 20.png)
+![Profile Picture](Frontend/aegis-browser/assets/Frame 20.png)
 
 
 
