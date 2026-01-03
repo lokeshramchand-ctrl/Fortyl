@@ -1,12 +1,12 @@
-// ignore_for_file: unused_field, deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'dart:async';
-import 'package:aegis_mobile/Screens/scanner_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:otp/otp.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import 'scanner_screen.dart';
+import '../Models/otp_model.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -16,18 +16,22 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Timer _refreshTimer;
-  double _percent = 1.0;
+
+  final List<OtpAccount> _accounts = [];
 
   @override
   void initState() {
     super.initState();
-    // Update every 100ms for "Liquid" smooth animations
-    _refreshTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      setState(() {
-        _percent = 1.0 - ((now % 30000) / 30000);
-      });
-    });
+
+    _refreshTimer = Timer.periodic(
+      const Duration(milliseconds: 100),
+      (_) {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        setState(() {
+          _percent = 1.0 - ((now % 30000) / 30000);
+        });
+      },
+    );
   }
 
   @override
@@ -41,77 +45,116 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0B0B0B),
       appBar: _buildAppBar(),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        itemCount: 3, // In production, this comes from your database
-        itemBuilder: (context, index) => const PoshOTPKeyCard(
-          label: "GitHub",
-          account: "lokesh.ram@university.com",
-          secret: "JBSWY3DPEHPK3PXP", // Mock Base32 Secret
-        ),
-      ),
+      body: _accounts.isEmpty ? _emptyState() : _buildList(),
     );
   }
+
+  // ---------------- UI ----------------
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      centerTitle: false,
-      title: const Text("Vault", 
-        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -1)),
+      title: const Text(
+        "Vault",
+        style: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+          letterSpacing: -1,
+        ),
+      ),
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 16),
           child: ElevatedButton(
-            // Inside your Add Button logic
-onPressed: () async {
-  var status = await Permission.camera.request();
-  if (status.isGranted) {
-    final result = await Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (context) => const ScannerScreen())
-    );
-    if (result != null) {
-      // Process the scanned OTP data
-      Navigator.pop(context); // Close the scanner and return to home
-    }
-  } else {
-    // Show a snackbar or dialog: "Camera permission is required"
-  }
-},
+            onPressed: _openScanner,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFF07127),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
             ),
-            child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
+            child: const Icon(Icons.add_rounded, color: Colors.white),
           ),
         )
       ],
     );
   }
+
+  Widget _emptyState() {
+    return const Center(
+      child: Text(
+        "No accounts yet\nTap + to add",
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Colors.white38, fontSize: 14),
+      ),
+    );
+  }
+
+  Widget _buildList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      itemCount: _accounts.length,
+      itemBuilder: (_, index) {
+        final acc = _accounts[index];
+        return PoshOTPKeyCard(
+          label: acc.label,
+          account: acc.account,
+          secret: acc.secret,
+        );
+      },
+    );
+  }
+
+  // ---------------- Logic ----------------
+
+  Future<void> _openScanner() async {
+    final status = await Permission.camera.request();
+    if (!status.isGranted) return;
+
+    final result = await Navigator.push<OtpAccount>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScannerScreen()),
+    );
+
+    if (result != null) {
+      setState(() => _accounts.add(result));
+    }
+  }
 }
+
+// =======================================================
+// OTP CARD
+// =======================================================
 
 class PoshOTPKeyCard extends StatelessWidget {
   final String label;
   final String account;
   final String secret;
 
-  const PoshOTPKeyCard({required this.label, required this.account, required this.secret, super.key});
+  const PoshOTPKeyCard({
+    super.key,
+    required this.label,
+    required this.account,
+    required this.secret,
+  });
 
   String _generateOTP() {
-    return OTP.generateTOTPCodeString(secret, DateTime.now().millisecondsSinceEpoch, 
-      interval: 30, algorithm: Algorithm.SHA1, isGoogle: true);
+    return OTP.generateTOTPCodeString(
+      secret,
+      DateTime.now().millisecondsSinceEpoch,
+      interval: 30,
+      algorithm: Algorithm.SHA1,
+      isGoogle: true,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // We use a TweenAnimationBuilder for the 'Liquid' progress effect
     final now = DateTime.now().millisecondsSinceEpoch;
-    final double progress = 1.0 - ((now % 30000) / 30000);
+    final progress = 1.0 - ((now % 30000) / 30000);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -123,82 +166,97 @@ class PoshOTPKeyCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // 1. The Liquid Background Fill (The "Posh" Timer)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: progress,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  gradient: LinearGradient(
-                    colors: [const Color(0xFFF07127).withOpacity(0.15), Colors.transparent],
-                  ),
+          // Liquid timer background
+          FractionallySizedBox(
+            widthFactor: progress,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFFF07127).withOpacity(0.15),
+                    Colors.transparent,
+                  ],
                 ),
               ),
             ),
           ),
-          
-          // 2. Content Layer
+
           Padding(
             padding: const EdgeInsets.all(24),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(label, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(account, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
-                    const SizedBox(height: 12),
-                    // Digital OTP Code
-                    GestureDetector(
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: _generateOTP()));
-                        HapticFeedback.vibrate();
-                      },
-                      child: Text(
-                        _generateOTP().replaceAllMapped(RegExp(r".{3}"), (match) => "${match.group(0)} "),
-                        style: const TextStyle(
-                          color: Color(0xFFF07127), 
-                          fontSize: 36, 
-                          fontWeight: FontWeight.w900, 
-                          letterSpacing: 1
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                // 3. Status Indicator (Minimalist Dot)
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.copy_rounded, color: Colors.white.withOpacity(0.2), size: 20),
-                    const Spacer(),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: progress > 0.2 ? const Color(0xFFF07127) : Colors.redAccent,
-                        boxShadow: [
-                          BoxShadow(
-                            color: (progress > 0.2 ? const Color(0xFFF07127) : Colors.redAccent).withOpacity(0.5),
-                            blurRadius: 10,
-                            spreadRadius: 2
-                          )
-                        ]
-                      ),
-                    )
-                  ],
-                )
+                _info(),
+                _status(progress),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _info() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          account,
+          style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () {
+            Clipboard.setData(ClipboardData(text: _generateOTP()));
+            HapticFeedback.vibrate();
+          },
+          child: Text(
+            _generateOTP().replaceAllMapped(
+              RegExp(r".{3}"),
+              (m) => "${m.group(0)} ",
+            ),
+            style: const TextStyle(
+              color: Color(0xFFF07127),
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _status(double progress) {
+    final color = progress > 0.2 ? const Color(0xFFF07127) : Colors.redAccent;
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.copy_rounded, color: Colors.white.withOpacity(0.2)),
+        const Spacer(),
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            boxShadow: [
+              BoxShadow(color: color.withOpacity(0.5), blurRadius: 10),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
