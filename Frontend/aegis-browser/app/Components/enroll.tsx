@@ -49,6 +49,9 @@ export default function Enrollment() {
       setState('error');
     }
   }, [userId, API_BASE]);
+    useEffect(() => {
+    fetchEnrollment();
+  }, [fetchEnrollment]);
   const handleOtpChange = (value: string, index: number) => {
     // Only allow numbers
     const cleanValue = value.replace(/[^0-9]/g, '');
