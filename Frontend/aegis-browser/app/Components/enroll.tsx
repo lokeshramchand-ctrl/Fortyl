@@ -8,10 +8,15 @@ export default function Enrollment() {
   const [state, setState] = useState<AppState>('enrolling');
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(''));
-  const [error,  setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [userId] = useState<string>("user_2d9k1m0p8x5z");
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+ const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  
+  // Add useEffect to log API_BASE
+  useEffect(() => {
+    console.log('API_BASE:', API_BASE);
+  }, []);
   const fetchEnrollment = useCallback(async () => {
     setError(null);
     try {
@@ -21,17 +26,29 @@ export default function Enrollment() {
       });
       if (!response.ok) throw new Error('Failed to initialize enrollment');
       const data = await response.json();
-      setQrCode(`data:image/png;base64,${data.qrCodeBase64}`);
+
+      // Log the response to see what field names are returned
+      console.log('Enrollment response:', data);
+
+      // Try different possible field names
+      const qrCodeData = data.qrCodeBase64 || data.qrCode || data.qr_code || data.qrCodeDataUrl;
+
+      if (qrCodeData) {
+        // Check if it already has the data URI prefix
+        if (qrCodeData.startsWith('data:image')) {
+          setQrCode(qrCodeData);
+        } else {
+          setQrCode(`data:image/png;base64,${qrCodeData}`);
+        }
+      } else {
+        throw new Error('QR code not found in response');
+      }
     } catch (err) {
+      console.error('Enrollment error:', err);
       setError('Connection failed. Please refresh to try again.');
       setState('error');
     }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchEnrollment();
-  }, [fetchEnrollment]);
-
+  }, [userId, API_BASE]);
   const handleOtpChange = (value: string, index: number) => {
     // Only allow numbers
     const cleanValue = value.replace(/[^0-9]/g, '');
@@ -402,7 +419,7 @@ export default function Enrollment() {
             <span className="badge-text">Encrypted Channel</span>
           </div>
           <h1 className="brand-title">Aegis</h1>
-          
+
           <div className="qr-wrapper">
             {qrCode ? (
               <img className="qr-image" src={qrCode} alt="MFA QR Code" />
