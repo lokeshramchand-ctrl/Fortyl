@@ -1,5 +1,5 @@
-import 'package:aegis_mobile/Screens/onboarding.dart';
 
+import 'package:aegis_mobile/Screens/home_screen.dart';
 import 'package:aegis_mobile/core/service/auth_service.dart';
 
 import 'package:flutter/material.dart';
@@ -35,7 +35,7 @@ class LockScreen extends StatelessWidget {
                     context,
 
                     MaterialPageRoute(
-                      builder: (context) => const OnboardingScreen(),
+                      builder: (context) => const HomeScreen(),
                     ),
                   );
                 }

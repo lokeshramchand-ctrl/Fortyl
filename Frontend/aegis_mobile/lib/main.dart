@@ -1,7 +1,6 @@
 // ignore_for_file: unused_import
 
 import 'package:aegis_mobile/Screens/lock_screen.dart';
-import 'package:aegis_mobile/Screens/onboarding.dart';
 import 'package:flutter/material.dart';
 
 void main() {
