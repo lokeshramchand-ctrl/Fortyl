@@ -7,11 +7,12 @@ import 'package:otp/otp.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'scanner_screen.dart';
+
 import '../Models/otp_model.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
-
+  const HomeScreen({super.key, this.initialAccount});
+  final OtpAccount? initialAccount;
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -27,6 +28,15 @@ class _HomeScreenState extends State<HomeScreen> {
       const Duration(milliseconds: 100),
       (_) => setState(() {}),
     );
+    
+  if (widget.initialAccount != null) {
+    _accounts.add(widget.initialAccount!);
+  }
+
+  _refreshTimer = Timer.periodic(
+    const Duration(milliseconds: 100),
+    (_) => setState(() {}),
+  );
   }
 
   @override
