@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:otp/otp.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'scanner_screen.dart';
 import '../Models/otp_model.dart';
 

@@ -1,7 +1,8 @@
-// lib/screens/scanner_screen.dart
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
+import 'package:aegis_mobile/Screens/onboarding.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-
 import '../models/otp_model.dart';
 import 'scanner_overlay.dart';
 
@@ -15,19 +16,24 @@ class ScannerScreen extends StatefulWidget {
 class _ScannerScreenState extends State<ScannerScreen>
     with SingleTickerProviderStateMixin {
 
-  late AnimationController _animationController;
-  bool _scanned = false; // prevents multiple scans
+  late final AnimationController _animationController;
+  final MobileScannerController _scannerController =
+      MobileScannerController();
+
+  bool _hasScanned = false; // 🔐 HARD LOCK
 
   @override
   void initState() {
     super.initState();
-    _animationController =
-        AnimationController(vsync: this, duration: const Duration(seconds: 2))
-          ..repeat(reverse: true);
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
+    _scannerController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -39,16 +45,19 @@ class _ScannerScreenState extends State<ScannerScreen>
       body: Stack(
         children: [
           MobileScanner(
+            controller: _scannerController,
             onDetect: (capture) {
-              if (_scanned) return;
+              if (_hasScanned) return;
 
-              final barcode = capture.barcodes.firstOrNull;
-              final code = barcode?.rawValue;
+              final barcodes = capture.barcodes;
+              if (barcodes.isEmpty) return;
 
-              if (code != null && code.startsWith("otpauth://")) {
-                _scanned = true;
-                _handleScannedData(code);
-              }
+              final raw = barcodes.first.rawValue;
+              if (raw == null) return;
+
+              _hasScanned = true;      // 🔒 LOCK
+              _scannerController.stop(); // 🛑 STOP CAMERA
+              _handleScannedData(raw);
             },
           ),
 
@@ -58,11 +67,14 @@ class _ScannerScreenState extends State<ScannerScreen>
           ),
 
           Positioned(
-            top: 50,
-            left: 20,
+            top: 48,
+            left: 16,
             child: IconButton(
               icon: const Icon(Icons.close, color: Colors.white, size: 30),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () =>                   Navigator.pushReplacement(
+                    context, 
+                    MaterialPageRoute(builder: (context) => const OnboardingScreen())
+              ),
             ),
           ),
         ],
@@ -70,40 +82,18 @@ class _ScannerScreenState extends State<ScannerScreen>
     );
   }
 
-  // ==========================================================
-  // OTPAUTH PARSER
-  // ==========================================================
-
   void _handleScannedData(String data) {
     try {
-      final uri = Uri.parse(data);
+      final account = OtpAccount.fromOtpAuthUri(data);
 
-      final secret = uri.queryParameters['secret'];
-      if (secret == null) return;
-
-      final issuerParam = uri.queryParameters['issuer'];
-
-      // Path format: /totp/Issuer:account OR /totp/account
-      final path = uri.path.replaceFirst('/totp/', '');
-      String issuer = issuerParam ?? 'Unknown';
-      String account = path;
-
-      if (path.contains(':')) {
-        final parts = path.split(':');
-        issuer = parts[0];
-        account = parts[1];
-      }
-
-      Navigator.pop(
-        context,
-        OtpAccount(
-          label: issuer,
-          account: account,
-          secret: secret,
-        ),
-      );
+      // Ensure navigation happens cleanly
+      Future.microtask(() {
+        Navigator.pop(context, account);
+      });
     } catch (_) {
-      Navigator.pop(context);
+      // Invalid QR → resume scanner
+      _hasScanned = false;
+      _scannerController.start();
     }
   }
 }
