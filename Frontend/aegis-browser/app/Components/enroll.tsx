@@ -23,7 +23,7 @@ export default function Enrollment() {
   // ==================== RANDOM USER GENERATION END ====================
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   // Log API configuration and generated user ID for debugging
   useEffect(() => {
