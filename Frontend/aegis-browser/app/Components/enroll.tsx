@@ -4,33 +4,40 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 type AppState = 'enrolling' | 'confirming' | 'success' | 'error';
 
-export default function Enrollment() {
+export default function App() {
   const [state, setState] = useState<AppState>('enrolling');
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(''));
   const [error, setError] = useState<string | null>(null);
 
-  // ==================== RANDOM USER GENERATION START ====================
-  // Generates a unique user ID on each component mount
-  // Format: user_<timestamp_base36>_<random_string>
-  // Example: user_lm5x8k_9a3f2e1d
+  const cardRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // ==================== LOGIC: RANDOM USER GENERATION ====================
   const generateRandomUserId = () => {
     const timestamp = Date.now().toString(36);
     const randomStr = Math.random().toString(36).substring(2, 10);
     return `user_${timestamp}_${randomStr}`;
   };
   const [userId] = useState<string>(generateRandomUserId());
-  // ==================== RANDOM USER GENERATION END ====================
-
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-  // Log API configuration and generated user ID for debugging
+  // ==================== ANIMATIONS: ENTRANCE ====================
   useEffect(() => {
-    console.log('API_BASE:', API_BASE);
-    console.log('Generated userId:', userId);
-  }, [userId]);
+    if (cardRef.current) {
+      cardRef.current.animate([
+        { opacity: 0, transform: 'translateY(40px) scale(0.98)' },
+        { opacity: 1, transform: 'translateY(0) scale(1)' }
+      ], {
+        duration: 1000,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        fill: 'forwards'
+      });
+    }
+  }, []);
 
+  // ==================== LOGIC: API CALLS ====================
   const fetchEnrollment = useCallback(async () => {
     setError(null);
     try {
@@ -40,38 +47,25 @@ export default function Enrollment() {
       });
       if (!response.ok) throw new Error('Failed to initialize enrollment');
       const data = await response.json();
-
-      // Log the response to see what field names are returned
-      console.log('Enrollment response:', data);
-
-      // Try different possible field names
+      
       const qrCodeData = data.qrCodeBase64 || data.qrCode || data.qr_code || data.qrCodeDataUrl;
 
       if (qrCodeData) {
-        // Check if it already has the data URI prefix
-        if (qrCodeData.startsWith('data:image')) {
-          setQrCode(qrCodeData);
-        } else {
-          setQrCode(`data:image/png;base64,${qrCodeData}`);
-        }
+        setQrCode(qrCodeData.startsWith('data:image') ? qrCodeData : `data:image/png;base64,${qrCodeData}`);
       } else {
         throw new Error('QR code not found in response');
       }
     } catch (err) {
-      console.error('Enrollment error:', err);
-      setError('Connection failed. Please refresh to try again.');
+      setError('Connection failed. Please refresh the page.');
       setState('error');
     }
   }, [userId, API_BASE]);
 
-  // Trigger enrollment API call when component mounts
   useEffect(() => {
     fetchEnrollment();
   }, [fetchEnrollment]);
 
-
   const handleOtpChange = (value: string, index: number) => {
-    // Only allow numbers
     const cleanValue = value.replace(/[^0-9]/g, '');
     if (!cleanValue && value !== '') return;
 
@@ -79,7 +73,6 @@ export default function Enrollment() {
     newOtp[index] = cleanValue.substring(cleanValue.length - 1);
     setOtp(newOtp);
 
-    // Auto-focus next input
     if (cleanValue && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -89,18 +82,6 @@ export default function Enrollment() {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const data = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6).split('');
-    const newOtp = [...otp];
-    data.forEach((char, i) => {
-      newOtp[i] = char;
-    });
-    setOtp(newOtp);
-    const nextIdx = Math.min(data.length, 5);
-    inputRefs.current[nextIdx]?.focus();
   };
 
   const handleConfirm = async (e: React.FormEvent) => {
@@ -118,381 +99,345 @@ export default function Enrollment() {
         body: JSON.stringify({ userId, code }),
       });
 
-      if (!response.ok) throw new Error('Invalid verification code. Please try again.');
+      if (!response.ok) throw new Error('Invalid verification code.');
       setState('success');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed');
       setState('enrolling');
+      
+      // Error Shake Animation
+      if (formRef.current) {
+        formRef.current.animate([
+          { transform: 'translateX(0)' },
+          { transform: 'translateX(-10px)' },
+          { transform: 'translateX(10px)' },
+          { transform: 'translateX(-10px)' },
+          { transform: 'translateX(10px)' },
+          { transform: 'translateX(0)' }
+        ], { duration: 400, easing: 'ease-in-out' });
+      }
     }
   };
 
   const isSubmitDisabled = otp.join('').length !== 6 || state === 'confirming' || state === 'success';
 
   return (
-    <div className="app-container">
+    <div className="aegis-root">
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+      
       <style>{`
-        :root {
-          --bg-main: #0a0a0a;
-          --bg-card: #111111;
-          --bg-input: #1a1a1a;
-          --border-color: rgba(255, 255, 255, 0.08);
-          --text-primary: #ffffff;
-          --text-secondary: #94a3b8;
-          --accent-color: #6366f1;
-          --success-color: #10b981;
-          --error-bg: rgba(239, 68, 68, 0.1);
-          --error-text: #f87171;
-          --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-
-        * {
-          box-sizing: border-box;
-          margin: 0;
-          padding: 0;
-        }
-
-        .app-container {
+        .aegis-root {
+          --apple-bg: #F5F5F7;
+          --apple-text: #1D1D1F;
+          --apple-grey: #86868B;
+          --apple-blue: #0071E3;
+          --glass-bg: rgba(255, 255, 255, 0.7);
+          
           min-height: 100vh;
-          background-color: var(--bg-main);
-          color: var(--text-secondary);
+          background-color: var(--apple-bg);
+          color: var(--apple-text);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 1.5rem;
-          font-family: var(--font-sans);
+          padding: 24px;
+          font-family: 'Inter', -apple-system, sans-serif;
+          -webkit-font-smoothing: antialiased;
         }
 
-        .card {
-          max-width: 900px;
+        .aegis-card {
+          max-width: 1000px;
           width: 100%;
-          background-color: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 1.25rem;
+          background: var(--glass-bg);
+          backdrop-filter: blur(40px) saturate(180%);
+          -webkit-backdrop-filter: blur(40px) saturate(180%);
+          border-radius: 44px;
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.08);
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+          opacity: 0; /* Start hidden for JS animation */
         }
 
         @media (min-width: 768px) {
-          .card { flex-direction: row; }
+          .aegis-card { flex-direction: row; }
         }
 
-        .card-left {
+        .aegis-left {
           flex: 1;
-          padding: 3.5rem;
+          background: rgba(250, 250, 251, 0.5);
+          padding: 64px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(145deg, #141414 0%, #0a0a0a 100%);
-          border-bottom: 1px solid var(--border-color);
+          position: relative;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         @media (min-width: 768px) {
-          .card-left { 
-            border-bottom: none; 
-            border-right: 1px solid var(--border-color); 
-          }
+          .aegis-left { border-bottom: none; border-right: 1px solid rgba(0, 0, 0, 0.05); }
         }
 
-        .status-badge {
-          display: inline-flex;
+        .secure-badge {
+          position: absolute;
+          top: 40px;
+          left: 40px;
+          display: flex;
           align-items: center;
-          gap: 0.6rem;
-          margin-bottom: 1rem;
-          padding: 0.4rem 0.8rem;
-          background: rgba(255, 255, 255, 0.03);
-          border-radius: 100px;
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          gap: 10px;
         }
-        
-        .dot {
-          width: 6px;
-          height: 6px;
-          background-color: var(--accent-color);
+
+        .pulse-dot {
+          width: 8px;
+          height: 8px;
+          background: var(--apple-blue);
           border-radius: 50%;
-          box-shadow: 0 0 8px var(--accent-color);
-          animation: pulse 2s infinite;
+          box-shadow: 0 0 10px rgba(0, 113, 227, 0.4);
+          animation: apple-pulse 2s infinite;
         }
 
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.9); }
+        @keyframes apple-pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.2); opacity: 0.5; }
+          100% { transform: scale(1); opacity: 1; }
         }
 
-        .badge-text {
-          font-size: 10px;
+        .badge-label {
+          font-size: 11px;
+          font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.15em;
-          font-weight: 700;
-          color: #64748b;
+          letter-spacing: 0.2em;
+          color: var(--apple-grey);
         }
 
-        .brand-title {
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          margin-bottom: 2.5rem;
-          letter-spacing: -0.02em;
-        }
-
-        .qr-wrapper {
-          position: relative;
-          padding: 1.25rem;
+        .qr-frame {
           background: white;
-          border-radius: 1rem;
-          width: 260px;
-          height: 260px;
+          padding: 40px;
+          border-radius: 40px;
+          box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05);
+          transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .qr-frame:hover { transform: scale(1.02); }
+
+        .qr-img {
+          width: 220px;
+          height: 220px;
+          object-fit: contain;
+          animation: fadeIn 1s ease-out;
+        }
+
+        .aegis-right {
+          flex: 1.3;
+          padding: 64px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.3);
+        }
+
+        .title {
+          font-size: 48px;
+          font-weight: 700;
+          letter-spacing: -0.03em;
+          margin-bottom: 8px;
+        }
+
+        .subtitle {
+          color: var(--apple-grey);
+          font-size: 20px;
+          font-weight: 500;
+          margin-bottom: 48px;
+        }
+
+        .instruction-step {
+          display: flex;
+          gap: 20px;
+          margin-bottom: 24px;
+        }
+
+        .step-num {
+          width: 28px;
+          height: 28px;
+          background: #F5F5F7;
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+          font-size: 12px;
+          font-weight: 700;
+          flex-shrink: 0;
         }
 
-        .qr-image {
-          max-width: 100%;
-          height: auto;
-          image-rendering: pixelated;
+        .step-text {
+          font-size: 15px;
+          line-height: 1.5;
+          color: #424245;
+          font-weight: 500;
         }
 
-        .spinner {
-          border: 3px solid #f1f5f9;
-          border-top: 3px solid var(--accent-color);
+        .otp-grid {
+          display: flex;
+          gap: 12px;
+          margin: 40px 0;
+        }
+
+        .otp-cell {
+          width: 100%;
+          height: 72px;
+          background: #F5F5F7;
+          border: 2px solid transparent;
+          border-radius: 20px;
+          text-align: center;
+          font-size: 28px;
+          font-weight: 700;
+          color: var(--apple-text);
+          outline: none;
+          transition: all 0.2s ease;
+        }
+
+        .otp-cell:focus {
+          background: white;
+          border-color: var(--apple-blue);
+          box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+        }
+
+        .btn-primary {
+          width: 100%;
+          height: 64px;
+          background: var(--apple-blue);
+          color: white;
+          border: none;
+          border-radius: 32px;
+          font-size: 17px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 10px 20px -5px rgba(0, 113, 227, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+          background: #0077ED;
+          transform: translateY(-1px);
+        }
+
+        .btn-primary:active:not(:disabled) {
+          transform: scale(0.98);
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+          filter: grayscale(1);
+        }
+
+        .error-msg {
+          background: #FFF1F0;
+          border: 1px solid #FFCCC7;
+          color: #E02020;
+          padding: 16px;
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 24px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          animation: fadeIn 0.3s ease;
+        }
+
+        .loader {
+          width: 20px;
+          height: 20px;
+          border: 3px solid rgba(255,255,255,0.3);
+          border-top-color: white;
           border-radius: 50%;
-          width: 2.5rem;
-          height: 2.5rem;
           animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .qr-footer {
-          margin-top: 2.5rem;
-          font-size: 0.8rem;
+        .success-view {
           text-align: center;
-          max-width: 260px;
-          line-height: 1.6;
-          color: #64748b;
+          animation: fadeIn 0.8s ease;
         }
 
-        .card-right {
-          flex: 1.2;
-          padding: 3.5rem;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
-
-        .header-section {
-          margin-bottom: 2.5rem;
-        }
-
-        .section-title {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: var(--text-primary);
-          margin-bottom: 1rem;
-        }
-
-        .instruction-list {
-          list-style: none;
-        }
-
-        .instruction-item {
-          display: flex;
-          gap: 1rem;
-          margin-bottom: 1.25rem;
-          font-size: 0.9rem;
-          line-height: 1.5;
-          color: var(--text-secondary);
-        }
-
-        .step-marker {
-          flex-shrink: 0;
-          width: 22px;
-          height: 22px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+        .success-icon {
+          width: 96px;
+          height: 96px;
+          background: #E8F5E9;
+          color: #2E7D32;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 10px;
-          font-weight: 700;
-          color: #cbd5e1;
-          background: rgba(255, 255, 255, 0.02);
-        }
-
-        .otp-container {
-          display: flex;
-          gap: 0.75rem;
-          margin-bottom: 2rem;
-        }
-
-        .otp-input {
-          width: 100%;
-          height: 4rem;
-          text-align: center;
-          font-size: 1.5rem;
-          font-weight: 600;
-          background-color: var(--bg-input);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 0.75rem;
-          color: white;
-          outline: none;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .otp-input:focus {
-          border-color: var(--accent-color);
-          background-color: #222;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-        }
-
-        .otp-input:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .error-alert {
-          background-color: var(--error-bg);
-          border: 1px solid rgba(239, 68, 68, 0.2);
-          color: var(--error-text);
-          padding: 1rem;
-          border-radius: 0.75rem;
-          font-size: 0.85rem;
-          margin-bottom: 2rem;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .submit-button {
-          width: 100%;
-          padding: 1rem;
-          background-color: white;
-          color: black;
-          border: none;
-          border-radius: 0.75rem;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.75rem;
-        }
-
-        .submit-button:hover:not(:disabled) {
-          background-color: #f1f5f9;
-          transform: translateY(-1px);
-        }
-
-        .submit-button:active:not(:disabled) {
-          transform: translateY(0);
-        }
-
-        .submit-button:disabled {
-          background-color: #1e293b;
-          color: #475569;
-          cursor: not-allowed;
-        }
-
-        .success-panel {
-          text-align: center;
-          padding: 1rem 0;
-          animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .success-circle {
-          width: 80px;
-          height: 80px;
-          background-color: rgba(16, 185, 129, 0.1);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 2rem;
-          color: var(--success-color);
-        }
-
-        .footer-tagline {
-          position: fixed;
-          bottom: 2rem;
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 0.2em;
-          color: #334155;
-          pointer-events: none;
+          margin: 0 auto 32px;
         }
       `}</style>
 
-      <div className="card">
-        <div className="card-left">
-          <div className="status-badge">
-            <div className="dot"></div>
-            <span className="badge-text">Encrypted Channel</span>
+      <div ref={cardRef} className="aegis-card">
+        {/* Left Visuals */}
+        <div className="aegis-left">
+          <div className="secure-badge">
+            <div className="pulse-dot"></div>
+            <span className="badge-label">Aegis Secure</span>
           </div>
-          <h1 className="brand-title">Aegis</h1>
 
-          <div className="qr-wrapper">
+          <div className="qr-frame">
             {qrCode ? (
-              <img className="qr-image" src={qrCode} alt="MFA QR Code" />
+              <img className="qr-img" src={qrCode} alt="MFA QR Code" />
             ) : (
-              <div className="spinner"></div>
+              <div style={{ width: 220, height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="loader" style={{ borderColor: '#E5E5E5', borderTopColor: '#0071E3' }}></div>
+              </div>
             )}
           </div>
 
-          <p className="qr-footer">
-            Scan this unique QR code with your authenticator app to establish a secure link with your account.
+          <p style={{ marginTop: 40, color: 'var(--apple-grey)', fontSize: 13, textAlign: 'center', maxWidth: 240, lineHeight: 1.6 }}>
+            Scan this secure key to link your physical device with your identity.
           </p>
         </div>
 
-        <div className="card-right">
+        {/* Right Interaction */}
+        <div className="aegis-right">
           {state === 'success' ? (
-            <div className="success-panel">
-              <div className="success-circle">
-                <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+            <div className="success-view">
+              <div className="success-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
-              <h2 className="section-title">Activation Successful</h2>
-              <p style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
-                Multi-factor authentication is now active on your account. Please ensure you have your recovery codes stored safely.
-              </p>
+              <h2 className="title" style={{ fontSize: 32 }}>Securely Linked</h2>
+              <p className="subtitle" style={{ fontSize: 17 }}>Your identity is now fortified with 2FA.</p>
+              <button className="btn-primary" style={{ background: '#1D1D1F', marginTop: 24 }} onClick={() => window.location.reload()}>
+                Continue
+              </button>
             </div>
           ) : (
             <>
-              <div className="header-section">
-                <h2 className="section-title">Enable MFA</h2>
-                <ul className="instruction-list">
-                  <li className="instruction-item">
-                    <span className="step-marker">1</span>
-                    <span>Open your preferred TOTP app (Google Authenticator, Aegis, Authy, etc).</span>
-                  </li>
-                  <li className="instruction-item">
-                    <span className="step-marker">2</span>
-                    <span>Scan the code on the left and enter the 6-digit confirmation key.</span>
-                  </li>
-                </ul>
+              <h1 className="title">Sign In.</h1>
+              <p className="subtitle">Verify your identity.</p>
+
+              <div className="instruction-step">
+                <div className="step-num">1</div>
+                <p className="step-text">Open your preferred TOTP app (Authenticator, Aegis, or Authy).</p>
+              </div>
+              <div className="instruction-step">
+                <div className="step-num">2</div>
+                <p className="step-text">Scan the QR code and enter the 6-digit confirmation key.</p>
               </div>
 
               <form onSubmit={handleConfirm}>
-                <div className="otp-container" onPaste={handlePaste}>
+                <div className="otp-grid">
                   {otp.map((digit, idx) => (
                     <input
                       key={idx}
                       ref={(el) => { inputRefs.current[idx] = el; }}
                       type="text"
                       inputMode="numeric"
-                      autoComplete="one-time-code"
-                      className="otp-input"
+                      className="otp-cell"
                       value={digit}
                       disabled={state === 'confirming'}
                       onChange={(e) => handleOtpChange(e.target.value, idx)}
@@ -503,23 +448,16 @@ export default function Enrollment() {
                 </div>
 
                 {error && (
-                  <div className="error-alert">
-                    <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  <div className="error-msg" ref={formRef}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
                     </svg>
-                    <span>{error}</span>
+                    {error}
                   </div>
                 )}
 
-                <button type="submit" className="submit-button" disabled={isSubmitDisabled}>
-                  {state === 'confirming' ? (
-                    <>
-                      <div className="spinner" style={{ width: '1.2rem', height: '1.2rem', borderWidth: '2px', borderColor: '#000', borderTopColor: 'transparent' }}></div>
-                      <span>Verifying...</span>
-                    </>
-                  ) : (
-                    <span>Confirm Activation</span>
-                  )}
+                <button type="submit" className="btn-primary" disabled={isSubmitDisabled}>
+                  {state === 'confirming' ? <div className="loader" style={{ margin: '0 auto' }}></div> : 'Complete Activation'}
                 </button>
               </form>
             </>
@@ -527,8 +465,8 @@ export default function Enrollment() {
         </div>
       </div>
 
-      <div className="footer-tagline">
-        Aegis Security Protocol v4.0 &bull; Signal Isolated
+      <div style={{ position: 'fixed', bottom: 32, fontSize: 11, fontWeight: 700, color: 'var(--apple-grey)', letterSpacing: '0.4em', textTransform: 'uppercase', pointerEvents: 'none', opacity: 0.5 }}>
+        Aegis Security Protocol v4.0
       </div>
     </div>
   );
