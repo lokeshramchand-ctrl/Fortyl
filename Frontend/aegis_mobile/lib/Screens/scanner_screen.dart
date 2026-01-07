@@ -1,11 +1,12 @@
+// lib/screens/scanner_screen.dart
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../models/otp_model.dart';
 import 'scanner_overlay.dart';
-// <-- your homepage
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -16,6 +17,7 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen>
     with SingleTickerProviderStateMixin {
+
   late final AnimationController _animationController;
   final MobileScannerController _scannerController = MobileScannerController();
 
@@ -48,11 +50,14 @@ class _ScannerScreenState extends State<ScannerScreen>
             onDetect: (capture) {
               if (_hasScanned) return;
 
-              final barcodes = capture.barcodes;
-              if (barcodes.isEmpty) return;
+              if (capture.barcodes.isEmpty) return;
 
-              final raw = barcodes.first.rawValue;
-              if (raw == null) return;
+              // ✅ CRITICAL FIX
+              final raw =
+                  capture.barcodes.first.displayValue ??
+                  capture.barcodes.first.rawValue;
+
+              if (raw == null || raw.isEmpty) return;
 
               _hasScanned = true;
               _scannerController.stop();
@@ -80,24 +85,33 @@ class _ScannerScreenState extends State<ScannerScreen>
   }
 
   // ---------------------------------------------------
-  // SCAN HANDLER
+  // SCAN HANDLER (FIXED)
   // ---------------------------------------------------
-void _handleScannedData(String data) async {
-  try {
-    final account = OtpAccount.fromOtpAuthUri(data);
+  void _handleScannedData(String rawData) async {
+    try {
+      // 1️⃣ Normalize scanner output
+      final cleaned = rawData
+          .trim()
+          .replaceAll('\n', '')
+          .replaceAll('\r', '');
 
-    // Give Flutter one frame to settle after camera stop
-    await Future.delayed(const Duration(milliseconds: 150));
+      // DEBUG (leave during testing)
+      debugPrint('🔍 SCANNED QR: $cleaned');
 
-    if (!mounted) return;
+      // 2️⃣ Parse OTP URI
+      final account = OtpAccount.fromOtpAuthUri(cleaned);
 
-    Navigator.pop(context, account);
+      // 3️⃣ Let camera settle
+      await Future.delayed(const Duration(milliseconds: 120));
+      if (!mounted) return;
 
-  } catch (_) {
-    _showInvalidQr();
+      Navigator.pop(context, account);
+
+    } catch (e) {
+      debugPrint('❌ INVALID QR: $e');
+      _showInvalidQr();
+    }
   }
-}
-
 
   void _showInvalidQr() async {
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -108,14 +122,14 @@ void _handleScannedData(String data) async {
           'Invalid QR code. Please scan a valid authenticator QR.',
           style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.redAccent.withOpacity(0.9),
+        backgroundColor: Colors.redAccent.withOpacity(0.95),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 2),
       ),
     );
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 900));
 
     _hasScanned = false;
     _scannerController.start();

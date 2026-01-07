@@ -3,7 +3,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:otp/otp.dart';
+import '../models/otp_model.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'scanner_screen.dart';
@@ -134,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
       itemCount: _accounts.length,
       itemBuilder: (_, index) {
         final acc = _accounts[index];
-        return PoshOTPKeyCard(
+        return OtpAccount(
           label: acc.label,
           account: acc.account,
           secret: acc.secret,
@@ -161,146 +161,4 @@ Future<void> _openScanner() async {
   }
 }
 
-}
-
-// =======================================================
-// OTP CARD (POLISHED)
-// =======================================================
-
-class PoshOTPKeyCard extends StatelessWidget {
-  final String label;
-  final String account;
-  final String secret;
-
-  const PoshOTPKeyCard({
-    super.key,
-    required this.label,
-    required this.account,
-    required this.secret,
-  });
-
-  String _generateOTP() {
-    return OTP.generateTOTPCodeString(
-      secret,
-      DateTime.now().millisecondsSinceEpoch,
-      interval: 30,
-      algorithm: Algorithm.SHA1,
-      isGoogle: true,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final progress = 1.0 - ((now % 30000) / 30000);
-
-    final accent = progress > 0.2 ? const Color(0xFFF07127) : Colors.redAccent;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 22),
-      height: 150,
-      decoration: BoxDecoration(
-        color: const Color(0xFF161616),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
-      ),
-      child: Stack(
-        children: [
-          // Progress Fill
-          Positioned.fill(
-            child: FractionallySizedBox(
-              widthFactor: progress,
-              alignment: Alignment.centerLeft,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  gradient: LinearGradient(
-                    colors: [
-                      accent.withOpacity(0.18),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(26),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _info(),
-                _status(accent),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _info() {
-    final otp = _generateOTP();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          account,
-          style: GoogleFonts.inter(
-            color: Colors.white38,
-            fontSize: 12,
-          ),
-        ),
-        const SizedBox(height: 14),
-        GestureDetector(
-          onTap: () {
-            Clipboard.setData(ClipboardData(text: otp));
-            HapticFeedback.mediumImpact();
-          },
-          child: Text(
-            otp.replaceAllMapped(RegExp(r".{3}"), (m) => "${m.group(0)} "),
-            style: GoogleFonts.inter(
-              color: const Color(0xFFF07127),
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _status(Color color) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.copy_rounded, color: Colors.white24, size: 20),
-        const Spacer(),
-        Container(
-          width: 9,
-          height: 9,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color,
-            boxShadow: [
-              BoxShadow(color: color.withOpacity(0.6), blurRadius: 14),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 }
