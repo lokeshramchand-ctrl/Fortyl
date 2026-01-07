@@ -1,10 +1,10 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:otp/otp.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'scanner_screen.dart';
@@ -24,9 +24,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-
+    // 60fps refresh for liquid-smooth progress transitions
     _refreshTimer = Timer.periodic(
-      const Duration(milliseconds: 100),
+      const Duration(milliseconds: 50),
       (_) => setState(() {}),
     );
   }
@@ -37,81 +37,26 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // ================= UI =================
+  // Peak Apple Interaction: Heavy mechanical haptics on code copy
+  // Designed to feel like a physical "thud" inside the chassis
+  void _handleCopy(String code) {
+    Clipboard.setData(ClipboardData(text: code));
+    HapticFeedback.heavyImpact(); 
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
-      appBar: _buildAppBar(),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: _accounts.isEmpty ? _emptyState() : _buildList(),
-      ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      title: Text(
-        "Vault",
-        style: GoogleFonts.inter(
-          fontSize: 30,
-          fontWeight: FontWeight.w800,
-          color: Colors.white,
-          letterSpacing: -1,
-        ),
-      ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 18),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: _openScanner,
-            child: Ink(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF07127),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFF07127).withOpacity(0.35),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _emptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.shield_outlined, size: 52, color: Colors.white24),
-          const SizedBox(height: 14),
-          Text(
-            "No accounts yet",
-            style: GoogleFonts.inter(
-              color: Colors.white70,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "Tap + to add your first key",
-            style: GoogleFonts.inter(
-              color: Colors.white38,
-              fontSize: 13,
+      backgroundColor: Colors.black,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        slivers: [
+          _buildLuxuryAppBar(),
+          SliverToBoxAdapter(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 600),
+              switchInCurve: Curves.easeOutQuart,
+              child: _accounts.isEmpty ? _buildEmptyState() : _buildProList(),
             ),
           ),
         ],
@@ -119,22 +64,122 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildList() {
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-      itemCount: _accounts.length,
-      itemBuilder: (_, index) {
-        return _otpCard(_accounts[index]);
-      },
+  Widget _buildLuxuryAppBar() {
+    return SliverAppBar(
+      expandedHeight: 160.0,
+      floating: false,
+      pinned: true,
+      backgroundColor: Colors.black.withOpacity(0.8),
+      elevation: 0,
+      stretch: true,
+      flexibleSpace: FlexibleSpaceBar(
+        centerTitle: false,
+        titlePadding: const EdgeInsets.only(left: 24, bottom: 20),
+        title: Text(
+          "Vault",
+          style: GoogleFonts.inter(
+            fontSize: 34,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            letterSpacing: -1.8,
+          ),
+        ),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 24, top: 12),
+          child: _buildProAddButton(),
+        ),
+      ],
     );
   }
 
-  // ================= OTP CARD (INLINE, CLEAN) =================
+  Widget _buildProAddButton() {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        _openScanner();
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            height: 48,
+            width: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+          ),
+        ),
+      ),
+    );
+  }
 
-  Widget _otpCard(OtpAccount account) {
+  Widget _buildEmptyState() {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.6,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withOpacity(0.05), width: 2),
+            ),
+            child: const Icon(Icons.face_retouching_natural, size: 64, color: Colors.white10),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            "Enclave Isolated",
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.8,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "Your digital credentials appear here once securely imported.",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: Colors.white24,
+              fontSize: 15,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProList() {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+      itemCount: _accounts.length,
+      itemBuilder: (_, index) => _buildTactileCard(_accounts[index]),
+    );
+  }
+
+  Widget _buildTactileCard(OtpAccount account) {
     final now = DateTime.now().millisecondsSinceEpoch;
     final progress = 1.0 - ((now % 30000) / 30000);
-    final accent = progress > 0.2 ? const Color(0xFFF07127) : Colors.redAccent;
+    final isCritical = progress < 0.25;
+    
+    // Apple Pro Palette
+    const azureBlue = Color(0xFF007AFF);
+    const systemRed = Color(0xFFFF3B30);
+    final accent = isCritical ? systemRed : azureBlue;
 
     final otp = OTP.generateTOTPCodeString(
       account.secret,
@@ -145,116 +190,138 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 22),
-      height: 150,
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFF161616),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        color: const Color(0xFF121214),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.06),
+          width: 1,
+        ),
       ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: FractionallySizedBox(
-              widthFactor: progress,
-              alignment: Alignment.centerLeft,
-              child: Container(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          children: [
+            // Ambient Liquid Progress
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 50),
+                width: MediaQuery.of(context).size.width * progress,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
                   gradient: LinearGradient(
-                    colors: [accent.withOpacity(0.18), Colors.transparent],
+                    colors: [accent.withOpacity(0.08), Colors.transparent],
                   ),
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(26),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      account.label,
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      account.account,
-                      style: GoogleFonts.inter(
-                        color: Colors.white38,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    GestureDetector(
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: otp));
-                        HapticFeedback.mediumImpact();
-                      },
-                      child: Text(
-                        otp.replaceAllMapped(
-                          RegExp(r".{3}"),
-                          (m) => "${m.group(0)} ",
+            
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _handleCopy(otp),
+                highlightColor: accent.withOpacity(0.03),
+                splashColor: Colors.transparent,
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              account.label.toUpperCase(),
+                              style: GoogleFonts.inter(
+                                color: Colors.white54,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              account.account,
+                              style: GoogleFonts.inter(
+                                color: Colors.white24,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              otp.replaceAllMapped(RegExp(r".{3}"), (m) => "${m.group(0)} "),
+                              style: GoogleFonts.inter(
+                                color: isCritical ? systemRed : Colors.white,
+                                fontSize: 44,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -2,
+                              ),
+                            ),
+                          ],
                         ),
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFFF07127),
-                          fontSize: 36,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1,
-                        ),
                       ),
-                    ),
-                  ],
+                      _buildProTimer(accent, progress),
+                    ],
+                  ),
                 ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.copy_rounded, color: Colors.white24, size: 20),
-                    const Spacer(),
-                    Container(
-                      width: 9,
-                      height: 9,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: accent,
-                        boxShadow: [
-                          BoxShadow(
-                            color: accent.withOpacity(0.6),
-                            blurRadius: 14,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // ================= SCANNER =================
+  Widget _buildProTimer(Color color, double progress) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          height: 52,
+          width: 52,
+          child: CircularProgressIndicator(
+            value: progress,
+            strokeWidth: 3,
+            color: color,
+            backgroundColor: Colors.white.withOpacity(0.05),
+          ),
+        ),
+        Container(
+          height: 8,
+          width: 8,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.5),
+                blurRadius: 10,
+                spreadRadius: 2,
+              )
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Future<void> _openScanner() async {
-    final status = await Permission.camera.request();
-    if (!status.isGranted) return;
-
     final result = await Navigator.push<OtpAccount>(
       context,
-      MaterialPageRoute(builder: (_) => const ScannerScreen()),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const ScannerScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
     );
 
     if (result != null) {
+      HapticFeedback.lightImpact();
       setState(() => _accounts.add(result));
     }
   }

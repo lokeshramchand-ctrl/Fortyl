@@ -1,13 +1,14 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
-import 'package:aegis_mobile/Screens/home_screen.dart';
-import 'package:aegis_mobile/core/service/auth_service.dart';
+import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// Note: Replaced internal imports with local mock logic for compilation.
-// Re-import your AuthService and OnboardingScreen accordingly.
+// Internal imports
+import 'package:aegis_mobile/Screens/home_screen.dart';
+import 'package:aegis_mobile/core/service/auth_service.dart';
 
 class LockScreen extends StatefulWidget {
   const LockScreen({super.key});
@@ -20,28 +21,35 @@ class _LockScreenState extends State<LockScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+  late Animation<double> _blurAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1500),
     );
 
     _fadeAnimation = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
     );
 
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: const Interval(0.2, 1.0, curve: Curves.easeOutQuart),
-          ),
-        );
+    _blurAnimation = Tween<double>(begin: 20.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.8, curve: Curves.easeOutQuart),
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.1, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 1.0, curve: Curves.easeOutQuart),
+      ),
+    );
 
     _controller.forward();
   }
@@ -53,20 +61,18 @@ class _LockScreenState extends State<LockScreen>
   }
 
   Future<void> _handleUnlock(BuildContext context) async {
-    // Haptic feedback for interaction depth
-    HapticFeedback.mediumImpact();
+    // Mechanical-grade haptic feedback
+    HapticFeedback.heavyImpact();
 
-    // Logic placeholder: call your AuthService.authenticate() here
-    // bool authenticated = await AuthService.authenticate();
     bool authenticated = await AuthService.authenticate();
 
     if (authenticated && context.mounted) {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 600),
+          transitionDuration: const Duration(milliseconds: 1000),
           pageBuilder: (context, animation, secondaryAnimation) =>
-              const HomeScreen(), // Replace with OnboardingScreen()
+              const HomeScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
@@ -77,106 +83,145 @@ class _LockScreenState extends State<LockScreen>
 
   @override
   Widget build(BuildContext context) {
-    const Color brandOrange = Color(0xFFF07127);
-    const Color backgroundDark = Color(0xFF0B0B0B);
-    const Color surfaceGrey = Color(0xFF1A1A1A);
+    // Premium Sage Palette: Sophisticated, secure, and modern
+    const Color sageGreen = Color(0xFF30D158); 
+    const Color backgroundBlack = Colors.black;
 
     return Scaffold(
-      backgroundColor: backgroundDark,
+      backgroundColor: backgroundBlack,
       body: Stack(
         children: [
-          // Subtle radial glow at the top
-          Positioned(
-            top: -100,
-            left: MediaQuery.of(context).size.width * 0.2,
-            right: MediaQuery.of(context).size.width * 0.2,
-            child: Container(
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    brandOrange.withOpacity(0.08),
-                    brandOrange.withOpacity(0.0),
-                  ],
-                ),
-              ),
+          // Background Aura (Ultra-soft depth glow)
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return Center(
+                  child: Container(
+                    width: 400,
+                    height: 400,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          sageGreen.withOpacity(0.05 * _fadeAnimation.value),
+                          sageGreen.withOpacity(0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
 
-          SafeArea(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
+          // Main Centered Content
+          Positioned.fill(
+            child: SafeArea(
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return ImageFiltered(
+                    imageFilter: ImageFilter.blur(
+                      sigmaX: _blurAnimation.value,
+                      sigmaY: _blurAnimation.value,
+                    ),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: child,
+                      ),
+                    ),
+                  );
+                },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Spacer(flex: 2),
-
-                      // Lock Visual Unit
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: surfaceGrey,
-                          borderRadius: BorderRadius.circular(32),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.05),
-                            width: 1,
+                      // Glassmorphic Biometric Unit
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Outer Pulsating Halo
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.8, end: 1.2),
+                            duration: const Duration(seconds: 4),
+                            curve: Curves.easeInOut,
+                            builder: (context, value, child) {
+                              return Container(
+                                width: 140 * value,
+                                height: 140 * value,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: sageGreen.withOpacity(0.05 / value),
+                                    width: 1.0,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.4),
-                              blurRadius: 40,
-                              offset: const Offset(0, 20),
+                          // Inner Glass Shield
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withOpacity(0.03),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.08),
+                                width: 0.5,
+                              ),
                             ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.fingerprint_rounded,
-                          size: 64,
-                          color: brandOrange,
-                        ),
+                            child: ClipOval(
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                child: const Icon(
+                                  Icons.face,
+                                  size: 48,
+                                  color: sageGreen,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
 
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 56),
 
-                      // Typography
+                      // Premium Typography
                       Text(
                         "Vault Locked",
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 32,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: Colors.white,
-                          letterSpacing: -1,
+                          letterSpacing: -1.2,
                         ),
                       ),
 
                       const SizedBox(height: 12),
 
                       Text(
-                        "Authentication required to access\nyour secure tokens",
-                        textAlign: TextAlign.center,
+                        "Secure Authentication Required",
                         style: GoogleFonts.inter(
-                          fontSize: 16,
-                          color: Colors.white.withOpacity(0.4),
-                          height: 1.5,
-                          letterSpacing: 0.1,
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.3),
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.5,
                         ),
                       ),
 
-                      const Spacer(flex: 3),
+                      const SizedBox(height: 80),
 
-                      // Primary Action
-                      _PremiumButton(
+                      // Refined Glass Button
+                      _PremiumGlassButton(
                         onPressed: () => _handleUnlock(context),
                         label: "Unlock",
-                        color: brandOrange,
+                        color: sageGreen,
                       ),
-
-                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -189,22 +234,22 @@ class _LockScreenState extends State<LockScreen>
   }
 }
 
-class _PremiumButton extends StatefulWidget {
+class _PremiumGlassButton extends StatefulWidget {
   final VoidCallback onPressed;
   final String label;
   final Color color;
 
-  const _PremiumButton({
+  const _PremiumGlassButton({
     required this.onPressed,
     required this.label,
     required this.color,
   });
 
   @override
-  State<_PremiumButton> createState() => _PremiumButtonState();
+  State<_PremiumGlassButton> createState() => _PremiumGlassButtonState();
 }
 
-class _PremiumButtonState extends State<_PremiumButton> {
+class _PremiumGlassButtonState extends State<_PremiumGlassButton> {
   bool _isPressed = false;
 
   @override
@@ -216,17 +261,17 @@ class _PremiumButtonState extends State<_PremiumButton> {
       onTap: widget.onPressed,
       child: AnimatedScale(
         scale: _isPressed ? 0.96 : 1.0,
-        duration: const Duration(milliseconds: 100),
+        duration: const Duration(milliseconds: 150),
         child: Container(
-          width: double.infinity,
-          height: 64,
+          width: 160,
+          height: 56,
           decoration: BoxDecoration(
             color: widget.color,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: widget.color.withOpacity(0.3),
-                blurRadius: 24,
+                color: widget.color.withOpacity(0.25),
+                blurRadius: 25,
                 offset: const Offset(0, 8),
               ),
             ],
@@ -234,10 +279,10 @@ class _PremiumButtonState extends State<_PremiumButton> {
           child: Center(
             child: Text(
               widget.label,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
                 letterSpacing: 0.2,
               ),
             ),
