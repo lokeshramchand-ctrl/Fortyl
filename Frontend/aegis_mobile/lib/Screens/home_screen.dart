@@ -3,37 +3,32 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../models/otp_model.dart';
+import 'package:otp/otp.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'scanner_screen.dart';
 
-import '../Models/otp_model.dart';
+import 'scanner_screen.dart';
+import '../models/otp_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Timer _refreshTimer;
+  late final Timer _refreshTimer;
   final List<OtpAccount> _accounts = [];
 
   @override
   void initState() {
     super.initState();
-    
+
     _refreshTimer = Timer.periodic(
       const Duration(milliseconds: 100),
       (_) => setState(() {}),
     );
- 
-
-  _refreshTimer = Timer.periodic(
-    const Duration(milliseconds: 100),
-    (_) => setState(() {}),
-  );
   }
 
   @override
@@ -41,6 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _refreshTimer.cancel();
     super.dispose();
   }
+
+  // ================= UI =================
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  // ================= APP BAR =================
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
@@ -85,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: const Color(0xFFF07127).withOpacity(0.35),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
-                  )
+                  ),
                 ],
               ),
               child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
@@ -95,8 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
-
-  // ================= EMPTY STATE =================
 
   Widget _emptyState() {
     return Center(
@@ -126,39 +119,143 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ================= LIST =================
-
   Widget _buildList() {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
       itemCount: _accounts.length,
       itemBuilder: (_, index) {
-        final acc = _accounts[index];
-        return OtpAccount(
-          label: acc.label,
-          account: acc.account,
-          secret: acc.secret,
-        );
+        return _otpCard(_accounts[index]);
       },
+    );
+  }
+
+  // ================= OTP CARD (INLINE, CLEAN) =================
+
+  Widget _otpCard(OtpAccount account) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final progress = 1.0 - ((now % 30000) / 30000);
+    final accent = progress > 0.2 ? const Color(0xFFF07127) : Colors.redAccent;
+
+    final otp = OTP.generateTOTPCodeString(
+      account.secret,
+      now,
+      interval: 30,
+      algorithm: Algorithm.SHA1,
+      isGoogle: true,
+    );
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 22),
+      height: 150,
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: FractionallySizedBox(
+              widthFactor: progress,
+              alignment: Alignment.centerLeft,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  gradient: LinearGradient(
+                    colors: [accent.withOpacity(0.18), Colors.transparent],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(26),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      account.label,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      account.account,
+                      style: GoogleFonts.inter(
+                        color: Colors.white38,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: otp));
+                        HapticFeedback.mediumImpact();
+                      },
+                      child: Text(
+                        otp.replaceAllMapped(
+                          RegExp(r".{3}"),
+                          (m) => "${m.group(0)} ",
+                        ),
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFFF07127),
+                          fontSize: 36,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.copy_rounded, color: Colors.white24, size: 20),
+                    const Spacer(),
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: accent,
+                        boxShadow: [
+                          BoxShadow(
+                            color: accent.withOpacity(0.6),
+                            blurRadius: 14,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   // ================= SCANNER =================
 
-Future<void> _openScanner() async {
-  final status = await Permission.camera.request();
-  if (!status.isGranted) return;
+  Future<void> _openScanner() async {
+    final status = await Permission.camera.request();
+    if (!status.isGranted) return;
 
-  final result = await Navigator.push<OtpAccount>(
-    context,
-    MaterialPageRoute(builder: (_) => const ScannerScreen()),
-  );
+    final result = await Navigator.push<OtpAccount>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScannerScreen()),
+    );
 
-  if (result != null) {
-    setState(() {
-      _accounts.add(result);
-    });
+    if (result != null) {
+      setState(() => _accounts.add(result));
+    }
   }
-}
-
 }
