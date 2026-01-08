@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 type AppState = 'idle' | 'verifying' | 'success';
 
-export default function App() {
+export default function Verify() {
   const [state, setState] = useState<AppState>('idle');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
