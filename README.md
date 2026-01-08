@@ -218,6 +218,14 @@ The Flutter app acts as a secure OTP generator.
 * Clear visual countdown
 * Account-centric (not device-only)
 
+### Images
+
+ <p align="center">
+   <img src="./Frontend/screenshots/Mobile_Lock.jpg" width="200" /> 
+    <img src="./Frontend/screenshots/Mobile_homescreen.jpg" width="200" /> 
+   <img src="./Frontend/screenshots/Mobile_Scanner.jpg" width="200" /> 
+ </p>
+
 ---
 
 ## Web App (Next.js)
@@ -236,6 +244,14 @@ The web app handles user-facing authentication flows.
 * Complements mobile app
 * Allows login without mobile device access
 * Admin / developer-friendly
+
+### Images
+
+ <p align="center">
+    <img src="./Frontend/screenshots/Web_Signin.png" width="600" /> 
+     <img src="./Frontend/screenshots/Web_Login.png" width="600" /> 
+
+ </p>
 
 ---
 
@@ -302,12 +318,6 @@ It demonstrates:
 
 
 
-##Images
 
- <p align="center">
-   <img src="./Frontend/screenshots/Mobile_homescreen.jpg" width="200" /> 
-   <img src="photo2.png" width="200" />
-   <img src="photo3.png" width="200" /> 
- </p>
 
 
