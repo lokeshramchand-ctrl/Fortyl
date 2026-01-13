@@ -1,4 +1,4 @@
-![Profile Picture](./Frontend/aegis-browser/assets/Frame-20.png)
+![Profile Picture](./Frontend/screenshots/Frame-20.png)
 
 
 # Fortyl — Secure Authentication Platform
