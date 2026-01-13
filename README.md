@@ -1,21 +1,21 @@
 ![Profile Picture](./Frontend/aegis-browser/assets/Frame-20.png)
 
 
-# JaLock — Secure Authentication Platform
+# Fortyl — Secure Authentication Platform
 
-JaLock is a modern authentication platform that provides Email & Password login, JWT-based sessions, and Time-based Multi-Factor Authentication (TOTP) using authenticator apps — built with security, clarity, and extensibility in mind.
-Unlike standalone authenticator apps, Aegis combines backend-driven authentication logic with client-side MFA, making it suitable for real-world applications, enterprise systems, and security-focused products.
+Fortyl is a modern authentication platform that provides Email & Password login, JWT-based sessions, and Time-based Multi-Factor Authentication (TOTP) using authenticator apps — built with security, clarity, and extensibility in mind.
+Unlike standalone authenticator apps, Fortyl combines backend-driven authentication logic with client-side MFA, making it suitable for real-world applications, enterprise systems, and security-focused products.
 
 ---
 
-## Why JaLock?
+## Why Fortyl?
 
 Authentication systems are often either:
 * **Too simple** — password-only login with weak security
 * **Too fragmented** — MFA handled separately with no backend awareness
 * **Hard to extend** — tightly coupled, hard to reason about
 
-Aegis solves this by treating authentication as a first-class platform.
+Fortyl solves this by treating authentication as a first-class platform.
 
 ---
 
@@ -35,7 +35,7 @@ As a result, systems become hard to scale, hard to audit, and hard to trust.
 
 ## Solution
 
-Aegis provides a clean, backend-driven authentication flow:
+Fortyl provides a clean, backend-driven authentication flow:
 * Email + Password authentication with BCrypt hashing
 * JWT-based stateless session management
 * TOTP-based MFA using industry-standard OTP algorithms
@@ -78,11 +78,11 @@ Aegis provides a clean, backend-driven authentication flow:
 ## Repository Structure
 
 ```text
-JaLock/
+Fortyl/
 │
 ├── Backend/
 │   ├── auth-core/
-│   │   ├── src/main/java/com/jalock/auth/
+│   │   ├── src/main/java/com/Fortyl/auth/
 │   │   │   ├── controller/
 │   │   │   │   ├── AuthController.java
 │   │   │   │   ├── MfaController.java
@@ -117,7 +117,7 @@ JaLock/
 │   │   │   │   ├── QrCodeUtil.java
 │   │   │   │   └── TotpUtil.java
 │   │   │   │
-│   │   │   └── JaLockApplication.java
+│   │   │   └── FortylApplication.java
 │   │   │
 │   │   ├── src/main/resources/
 │   │   │   └── application.yml
@@ -145,7 +145,7 @@ JaLock/
 │   │   └── pubspec.yaml
 │
 ├── Web/
-│   ├── jalock-web/          # Next.js App
+│   ├── Fortyl-web/          # Next.js App
 │   │   ├── pages/
 │   │   │   ├── login.tsx
 │   │   │   ├── enroll.tsx
@@ -294,7 +294,7 @@ The web app handles user-facing authentication flows.
 
 ##  Design Philosophy
 
-JaLock is built with:
+Fortyl is built with:
 
 * Explicit state transitions
 * Clear authentication contracts
@@ -306,7 +306,7 @@ JaLock is built with:
 
 ##  Conclusion
 
-JaLock is not just an MFA demo — it is a full authentication platform foundation.
+Fortyl is not just an MFA demo — it is a full authentication platform foundation.
 
 It demonstrates:
 
