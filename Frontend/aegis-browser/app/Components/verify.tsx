@@ -11,13 +11,8 @@ export default function Verify() {
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(''));
   const [error, setError] = useState<string | null>(null);
 
-  // Generate a random userId for the session (required by the backend DTO)
-  const generateRandomUserId = () => {
-    const timestamp = Date.now().toString(36);
-    const randomStr = Math.random().toString(36).substring(2, 10);
-    return `user_${timestamp}_${randomStr}`;
-  };
-  const [userId] = useState<string>(generateRandomUserId());
+  const USERID = process.env.userID || 'test-user-1234';
+  const [userId] = useState<string>(USERID);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLDivElement>(null);

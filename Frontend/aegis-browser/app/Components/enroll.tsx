@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 type AppState = 'enrolling' | 'confirming' | 'success' | 'error';
 
@@ -14,13 +15,8 @@ export default function App() {
   const formRef = useRef<HTMLDivElement>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // ==================== LOGIC: RANDOM USER GENERATION ====================
-  const generateRandomUserId = () => {
-    const timestamp = Date.now().toString(36);
-    const randomStr = Math.random().toString(36).substring(2, 10);
-    return `user_${timestamp}_${randomStr}`;
-  };
-  const [userId] = useState<string>(generateRandomUserId());
+  const USERID = process.env.userID || 'test-user-1234';
+  const [userId] = useState<string>(USERID);
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   // ==================== ANIMATIONS: ENTRANCE ====================
