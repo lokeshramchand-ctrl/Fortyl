@@ -279,16 +279,7 @@ The web app handles user-facing authentication flows.
 * TypeScript
 * API-based auth flows
 
----
 
-##  Future Enhancements (Not Implemented Yet)
-
-* **Redis:** OTP window cache & session TTL
-* **Kafka:** Auth events, audit logs
-* **Device fingerprinting**
-* **Login alerts**
-* **Recovery codes**
-* **Risk-based MFA**
 
 ---
 
